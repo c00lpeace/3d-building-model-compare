@@ -97,8 +97,8 @@
         <option value="musae">무새 — 82점</option>
         <option value="deepseek">DeepSeek (V4.1 Flash) — 68점</option>
         <option value="claude">Claude (Opus 5.5 Medium) — 97점</option>
-        <option value="claude-high">Claude High (채점 중)</option>
-        <option value="codex-high">Codex High (채점 중)</option>
+        <option value="claude-high">Claude High — 99점</option>
+        <option value="codex-high">Codex High — 88점</option>
       </select>
       <iframe id="frameB" src="codex/index.html" title="버전 B"></iframe>
     </div>
@@ -136,12 +136,29 @@
   </tbody>
 </table>
 
-<h2>High 재대결 (상위 2개)</h2>
-<div class="warn">Claude High (73,807바이트, 출력 101,072토큰, 약 16분 15초)와 Codex High (60,141바이트, 출력 32,152토큰, Three.js 없이 Canvas 2D 직접 투영으로 전환)는 제작이 끝났고 현재 채점 중입니다. 아래 원본으로 먼저 직접 확인해 볼 수 있습니다.</div>
-<p>
-  <a class="btn" href="claude-high/index.html" target="_blank">Claude High 원본 열기</a>
-  <a class="btn" href="codex-high/index.html" target="_blank">Codex High 원본 열기</a>
-</p>
+<h2>High 재대결 결과 (상위 2개)</h2>
+<table>
+  <thead><tr><th>버전</th><th>High</th><th>Medium</th><th>변화</th></tr></thead>
+  <tbody>
+    <tr><td>Claude (Opus 5.5)</td><td><strong>99</strong></td><td>97</td><td>+2</td></tr>
+    <tr><td>Codex (gpt-6.2-sol)</td><td><strong>88</strong></td><td>86</td><td>+2</td></tr>
+  </tbody>
+</table>
+<div class="cards" style="margin-top:12px">
+  <div class="card">
+    <img src="shots/claude-high-desktop.png" alt="Claude High 첫 화면">
+    <h3>Claude High — 99점</h3>
+    <p>Medium의 유일한 감점이었던 '첫 화면에서 중간 층 내부가 덜 보임'이 해소돼 전 층 내부가 첫 화면에서 확인됐고, 모바일 층 버튼이 하단 한 줄로 정돈됐습니다. 73,807바이트, 출력 101,072토큰, 약 16분 15초, 로그상 $3.28.</p>
+    <a class="btn" href="claude-high/index.html" target="_blank">원본 열기</a>
+  </div>
+  <div class="card">
+    <img src="shots/codex-high-desktop.png" alt="Codex High 첫 화면">
+    <h3>Codex High — 88점</h3>
+    <p>Three.js 없이 Canvas 2D 투영만으로 회전·층 분리까지 구현한 것이 인상적입니다. 층 선택 시 RF 분리 연출과 첫 화면 마감이 좋아졌으나, 1F 간판 부재와 2F 빈 층은 Medium에 이어 반복됐습니다. 60,141바이트, 출력 32,152토큰, 약 10분 53초.</p>
+    <a class="btn" href="codex-high/index.html" target="_blank">원본 열기</a>
+  </div>
+</div>
+<p class="note">두 모델 모두 High에서 정확히 +2점씩 올랐고, 11점 격차는 그대로 유지됐습니다. 기능적 치명 결함과 콘솔 오류는 High 2종 모두 없었습니다.</p>
 
 <script>
   var names = {
@@ -149,8 +166,8 @@
     'codex': 'Codex (gpt-6.2-sol Medium) — 86점',
     'musae': '무새 — 82점',
     'deepseek': 'DeepSeek (V4.1 Flash) — 68점',
-    'claude-high': 'Claude (Opus 5.5 High) — 채점 중',
-    'codex-high': 'Codex (gpt-6.2-sol High) — 채점 중'
+    'claude-high': 'Claude (Opus 5.5 High) — 99점',
+    'codex-high': 'Codex (gpt-6.2-sol High) — 88점'
   };
   function showOne(key){
     document.getElementById('frames').className = 'frames';
