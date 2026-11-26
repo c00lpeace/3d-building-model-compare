@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>STILLWELL — 공간 둘러보기</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f8f8f3;
+    --paper: #fffefa;
+    --ink: #202924;
+    --muted: #56625a;
+    --line: #d9ded3;
+    --line-strong: #bcc6b9;
+    --stage: #e8ede4;
+    --grid: rgba(62, 90, 70, .08);
+    --accent: #bcf487;
+    --accent-ink: #1c301e;
+    --chip: #eff3e9;
+    --hint: rgba(255, 254, 250, .93);
+    --focus: #346b38;
+    font-family: Arial, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  }
+
+  :root[data-theme="night"] {
+    color-scheme: dark;
+    --page: #171d20;
+    --paper: #222a2d;
+    --ink: #f0f3ec;
+    --muted: #b5c0b8;
+    --line: #394548;
+    --line-strong: #55635f;
+    --stage: #1c282f;
+    --grid: rgba(163, 191, 193, .085);
+    --accent: #bcf487;
+    --accent-ink: #1c301e;
+    --chip: #303c39;
+    --hint: rgba(34, 42, 45, .94);
+    --focus: #bcf487;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .wrap { width: min(1440px, 100%); margin: 0 auto; padding: 0 clamp(16px, 4vw, 64px); }
+
+  .masthead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 77px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .brand { display: inline-flex; align-items: center; gap: 11px; }
+  .brand-name { font-size: 20px; font-weight: 900; letter-spacing: -.055em; }
+  .brand-mark {
+    display: grid;
+    place-content: center;
+    gap: 3px;
+    width: 31px;
+    height: 31px;
+    border-radius: 8px;
+    background: var(--accent);
+  }
+  .brand-mark i {
+    display: block;
+    width: 13px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent-ink);
+    transform: skewY(-17deg);
+  }
+
+  .theme {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    padding: 4px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--paper);
+  }
+  .theme button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    min-width: 53px;
+    min-height: 32px;
+    padding: 3px 10px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .theme button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .theme-icon { font-size: 16px; line-height: 1; }
+
+  .intro { padding: clamp(25px, 4vh, 44px) 0 24px; }
+  .intro h1 { margin: 0 0 10px; font-size: clamp(30px, 4.5vw, 61px); line-height: 1.03; letter-spacing: -.085em; }
+  .intro p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; word-break: keep-all; }
+
+  .explorer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 305px);
+    min-height: 550px;
+    border: 1px solid var(--line-strong);
+    border-radius: 22px;
+    overflow: hidden;
+    background: var(--paper);
+  }
+
+  .stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr);
+    min-width: 0;
+    min-height: clamp(550px, 69vh, 780px);
+    isolation: isolate;
+    background-color: var(--stage);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 31px 31px;
+    background-position: center;
+  }
+
+  .floors {
+    position: relative;
+    z-index: 2;
+    align-self: center;
+    display: grid;
+    gap: 5px;
+    width: max-content;
+    margin-left: 16px;
+    padding: 5px;
+    background: var(--hint);
+    border: 1px solid var(--line-strong);
+    border-radius: 13px;
+  }
+
+  .floors button {
+    display: grid;
+    place-items: center;
+    width: 43px;
+    min-height: 41px;
+    padding: 0 3px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .floors button:hover { background: var(--chip); color: var(--ink); }
+  .floors button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .floors button[data-floor="-1"] { font-size: 10px; }
+
+  .viewport { position: relative; min-width: 0; min-height: 0; }
+  .viewport canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: pan-y;
+    cursor: grab;
+  }
+  .viewport canvas.dragging { cursor: grabbing; }
+
+  .hint {
+    position: absolute;
+    right: 13px;
+    bottom: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--hint);
+    color: var(--muted);
+    font-size: 11px;
+    pointer-events: none;
+  }
+  .hint span { font-size: 17px; line-height: 1; }
+  .scene-error {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 24px;
+    text-align: center;
+    align-content: center;
+    color: var(--muted);
+  }
+  .scene-error[hidden] { display: none; }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 27px 24px 22px;
+    border-left: 1px solid var(--line);
+  }
+  .panel-label {
+    margin: 0 0 25px;
+    padding-bottom: 17px;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+  }
+  .floor-code {
+    display: inline-grid;
+    place-items: center;
+    min-width: 48px;
+    min-height: 33px;
+    padding: 5px 9px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--chip);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .panel h2 {
+    margin: 15px 0 11px;
+    font-size: clamp(25px, 2.7vw, 36px);
+    line-height: 1.12;
+    letter-spacing: -.07em;
+    word-break: keep-all;
+  }
+  .description { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.75; word-break: keep-all; }
+  .features { display: grid; gap: 9px; margin: 24px 0 30px; padding: 0; list-style: none; }
+  .features li {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .features li::before { content: ""; width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #79aa64; }
+  .panel-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+  .panel-nav button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 5px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .panel-nav button:hover { background: var(--chip); }
+  .panel-nav #next { border-color: transparent; background: var(--accent); color: var(--accent-ink); }
+  .panel-nav #next:hover { filter: brightness(.95); }
+  .panel-nav button:disabled { opacity: .4; cursor: default; }
+  .footer { padding: 17px 0 22px; color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+
+  @media (max-width: 880px) {
+    .explorer { grid-template-columns: minmax(0, 1fr) 245px; }
+    .stage { grid-template-columns: 58px minmax(0, 1fr); min-height: 520px; }
+    .floors { margin-left: 8px; }
+    .floors button { width: 38px; }
+    .panel { padding-inline: 18px; }
+  }
+
+  @media (max-width: 740px) {
+    .masthead { min-height: 62px; }
+    .explorer { grid-template-columns: minmax(0, 1fr); border-radius: 16px; }
+    .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto clamp(320px, 59vh, 540px); min-height: 0; }
+    .floors {
+      align-self: auto;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 3px;
+      width: auto;
+      margin: 9px 9px 0;
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .floors button { width: auto; min-width: 0; min-height: 40px; font-size: 12px; }
+    .panel { border-left: 0; border-top: 1px solid var(--line); padding: 18px; }
+    .panel-label { margin-bottom: 17px; padding-bottom: 13px; }
+    .features { margin: 16px 0 20px; }
+    .footer { padding-left: 2px; }
+  }
+
+  @media (max-width: 360px) {
+    .wrap { padding-inline: 10px; }
+    .floors { margin-inline: 5px; }
+    .theme button { min-width: 46px; padding-inline: 7px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="brand-name">STILLWELL</span>
+    </div>
+    <div class="theme" role="group" aria-label="시간대 선택">
+      <button id="day" type="button" aria-pressed="true"><span class="theme-icon" aria-hidden="true">☀</span>낮</button>
+      <button id="night" type="button" aria-pressed="false"><span class="theme-icon" aria-hidden="true">☾</span>밤</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="intro">
+      <h1>공간 둘러보기</h1>
+      <p>로비에서 루프테라스까지, 스틸웰의 층마다 다른 풍경을 만나보세요.</p>
+    </div>
+
+    <div class="explorer">
+      <section class="stage" aria-label="스틸웰 3D 건물">
+        <nav class="floors" aria-label="층 선택">
+          <button type="button" data-floor="-1" aria-pressed="true">전체 보기</button>
+          <button type="button" data-floor="0" aria-label="1층 로비" aria-pressed="false">1F</button>
+          <button type="button" data-floor="1" aria-label="2층 사무 공간" aria-pressed="false">2F</button>
+          <button type="button" data-floor="2" aria-label="3층 회의·라운지" aria-pressed="false">3F</button>
+          <button type="button" data-floor="3" aria-label="4층 카페·테라스" aria-pressed="false">4F</button>
+          <button type="button" data-floor="4" aria-label="5층 피트니스" aria-pressed="false">5F</button>
+          <button type="button" data-floor="5" aria-label="루프테라스" aria-pressed="false">RF</button>
+        </nav>
+        <div class="viewport" id="viewport">
+          <p class="scene-error" id="scene-error" role="status" hidden>3D 장면을 불러올 수 없습니다. 층별 정보는 층 선택 버튼으로 볼 수 있습니다.</p>
+          <div class="hint" aria-hidden="true"><span>↔</span> 드래그하여 회전</div>
+        </div>
+      </section>
+
+      <aside class="panel" aria-label="층별 정보">
+        <p class="panel-label">층별 안내</p>
+        <div aria-live="polite" aria-atomic="true">
+          <span class="floor-code" id="floor-code">1F–RF</span>
+          <h2 id="floor-title">스틸웰</h2>
+          <p class="description" id="floor-description">일하고, 쉬고, 사람을 만나는 여섯 개의 공간입니다. 층 버튼이나 건물의 열린 단면을 눌러 안을 들여다보세요.</p>
+          <ul class="features" id="features">
+            <li>1층부터 5층까지 이어지는 실내 공간</li>
+            <li>하늘 아래 펼쳐진 루프테라스</li>
+          </ul>
+        </div>
+        <nav class="panel-nav" aria-label="이전 층과 다음 층">
+          <button type="button" id="previous" disabled><span aria-hidden="true">←</span><span id="previous-text">이전 층</span></button>
+          <button type="button" id="next"><span id="next-text">1F 보기</span><span aria-hidden="true">→</span></button>
+        </nav>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">STILLWELL · 가상의 공간</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const overview = {
+    code: "1F–RF",
+    title: "스틸웰",
+    description: "일하고, 쉬고, 사람을 만나는 여섯 개의 공간입니다. 층 버튼이나 건물의 열린 단면을 눌러 안을 들여다보세요.",
+    features: ["1층부터 5층까지 이어지는 실내 공간", "하늘 아래 펼쳐진 루프테라스"]
+  };
+
+  const floorData = [
+    {
+      code: "1F", title: "로비",
+      description: "유리문을 지나면 스틸웰 간판과 리셉션이 보입니다. 약속 시간보다 일찍 도착했다면 소파에서 잠시 쉬어가세요.",
+      features: ["유리 출입구", "스틸웰 리셉션", "방문객 대기 공간"]
+    },
+    {
+      code: "2F", title: "사무 공간",
+      description: "서로 마주 보는 책상과 창가 자리가 있는 업무 공간입니다. 긴 테이블에서는 동료와 나란히 일할 수 있습니다.",
+      features: ["공용 업무 테이블", "모니터가 있는 작업 좌석", "창가 조용한 자리"]
+    },
+    {
+      code: "3F", title: "회의·라운지",
+      description: "긴 테이블에서는 함께 의논하고, 옆 라운지에서는 소파에 앉아 이야기를 이어갑니다.",
+      features: ["공용 회의 테이블", "발표용 보드", "소파와 낮은 테이블"]
+    },
+    {
+      code: "4F", title: "카페·테라스",
+      description: "카운터에서 커피를 받아 창가나 바깥 테라스로 나가보세요. 작은 원형 테이블이 실내와 야외를 잇습니다.",
+      features: ["커피 바", "실내 카페 좌석", "야외 테라스"]
+    },
+    {
+      code: "5F", title: "피트니스",
+      description: "러닝머신과 웨이트 기구로 몸을 움직이는 공간입니다. 매트 위에서 가볍게 스트레칭할 수도 있습니다.",
+      features: ["러닝머신", "덤벨 랙과 벤치", "스트레칭 매트"]
+    },
+    {
+      code: "RF", title: "루프테라스",
+      description: "건물 꼭대기에서 바람을 맞으며 쉬어갈 수 있습니다. 화분 사이의 소파와 퍼걸러 아래 좌석이 마련되어 있습니다.",
+      features: ["퍼걸러 아래 야외 소파", "화분과 작은 정원", "하늘이 열린 휴식 공간"]
+    }
+  ];
+
+  const floorButtons = Array.from(document.querySelectorAll("[data-floor]"));
+  const floorCode = document.getElementById("floor-code");
+  const floorTitle = document.getElementById("floor-title");
+  const description = document.getElementById("floor-description");
+  const features = document.getElementById("features");
+  const previous = document.getElementById("previous");
+  const next = document.getElementById("next");
+  const previousText = document.getElementById("previous-text");
+  const nextText = document.getElementById("next-text");
+  const day = document.getElementById("day");
+  const night = document.getElementById("night");
+  const viewport = document.getElementById("viewport");
+  let selected = -1;
+  let isNight = false;
+  let updateScene = () => {};
+
+  function selectFloor(index) {
+    selected = Math.max(-1, Math.min(floorData.length - 1, index));
+    const details = floorData[selected] || overview;
+
+    for (const button of floorButtons) {
+      button.setAttribute("aria-pressed", String(Number(button.dataset.floor) === selected));
+    }
+    floorCode.textContent = details.code;
+    floorTitle.textContent = details.title;
+    description.textContent = details.description;
+    features.replaceChildren(...details.features.map(feature => {
+      const item = document.createElement("li");
+      item.textContent = feature;
+      return item;
+    }));
+
+    previous.disabled = selected === -1;
+    previousText.textContent = selected > 0 ? `${floorData[selected - 1].code} 보기` : selected === 0 ? "전체 보기" : "이전 층";
+    nextText.textContent = selected === floorData.length - 1 ? "전체 보기" : `${floorData[selected + 1].code} 보기`;
+    updateScene();
+  }
+
+  function setTime(nightMode) {
+    isNight = nightMode;
+    document.documentElement.dataset.theme = nightMode ? "night" : "day";
+    day.setAttribute("aria-pressed", String(!nightMode));
+    night.setAttribute("aria-pressed", String(nightMode));
+    updateScene();
+  }
+
+  for (const button of floorButtons) {
+    button.addEventListener("click", () => selectFloor(Number(button.dataset.floor)));
+  }
+  previous.addEventListener("click", () => selectFloor(selected - 1));
+  next.addEventListener("click", () => selectFloor(selected === floorData.length - 1 ? -1 : selected + 1));
+  day.addEventListener("click", () => setTime(false));
+  night.addEventListener("click", () => setTime(true));
+
+  function initScene(THREE) {
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.setAttribute("aria-hidden", "true");
+    viewport.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, .1, 100);
+    const target = new THREE.Vector3(.2, 4.55, .95);
+    camera.position.copy(target).add(new THREE.Vector3(19, 19, 19));
+    camera.lookAt(target);
+
+    const sky = new THREE.HemisphereLight(0xf4faff, 0x84907a, .83);
+    const sun = new THREE.DirectionalLight(0xffecd3, 1.05);
+    sun.position.set(8, 19, 11);
+    sun.target.position.set(0, 4, 0);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1536, 1536);
+    Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 41 });
+    sun.shadow.camera.updateProjectionMatrix();
+    sun.shadow.normalBias = .035;
+    sun.shadow.bias = -.00025;
+    const fill = new THREE.DirectionalLight(0xc8dafe, .34);
+    fill.position.set(-9, 7, -6);
+    scene.add(sky, sun, sun.target, fill);
+
+    const stage = new THREE.Group();
+    const building = new THREE.Group();
+    scene.add(stage, building);
+
+    const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const tubeGeometry = new THREE.CylinderGeometry(1, 1, 1, 14);
+    const ballGeometry = new THREE.SphereGeometry(1, 12, 8);
+    const rockGeometry = new THREE.IcosahedronGeometry(1, 1);
+    const planeGeometry = new THREE.PlaneGeometry(1, 1);
+    const stageMaterials = new Map();
+
+    function colorMaterial(group, color, kind) {
+      const cache = group.userData.palette || stageMaterials;
+      const key = `${color}/${kind}`;
+      if (!cache.has(key)) {
+        const glass = kind === "entry";
+        const material = new THREE.MeshStandardMaterial({
+          color,
+          roughness: kind === "window" || glass ? .25 : .84,
+          metalness: kind === "metal" ? .26 : 0,
+          transparent: glass,
+          opacity: glass ? .36 : 1,
+          depthWrite: !glass
+        });
+        material.userData = { color: new THREE.Color(color), kind };
+        cache.set(key, material);
+      }
+      return cache.get(key);
+    }
+
+    function primitive(group, geometry, x, y, z, sx, sy, sz, color, kind = "solid", rotate = 0) {
+      const mesh = new THREE.Mesh(geometry, colorMaterial(group, color, kind));
+      mesh.position.set(x, y, z);
+      mesh.scale.set(sx, sy, sz);
+      mesh.rotation.y = rotate;
+      mesh.castShadow = kind === "solid" || kind === "metal";
+      mesh.receiveShadow = true;
+      group.add(mesh);
+      return mesh;
+    }
+
+    function box(group, x, y, z, width, height, depth, color, kind = "solid", rotate = 0) {
+      return primitive(group, boxGeometry, x, y, z, width, height, depth, color, kind, rotate);
+    }
+
+    function tube(group, x, y, z, radius, height, color, kind = "solid") {
+      return primitive(group, tubeGeometry, x, y, z, radius, height, radius, color, kind);
+    }
+
+    function orb(group, x, y, z, width, height, depth, color, faceted = false) {
+      return primitive(group, faceted ? rockGeometry : ballGeometry, x, y, z, width, height, depth, color);
+    }
+
+    function label(group, value, x, y, z, width, height, background, foreground, fontSize) {
+      const surface = document.createElement("canvas");
+      surface.width = 512;
+      surface.height = 128;
+      const context = surface.getContext("2d");
+      context.fillStyle = background;
+      context.fillRect(0, 0, 512, 128);
+      context.fillStyle = foreground;
+      context.font = `800 ${fontSize}px Arial, sans-serif`;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(value, 256, 66, 468);
+
+      const map = new THREE.CanvasTexture(surface);
+      map.encoding = THREE.sRGBEncoding;
+      const material = new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(planeGeometry, material);
+      mesh.position.set(x, y, z);
+      mesh.scale.set(width, height, 1);
+      group.add(mesh);
+      return material;
+    }
+
+    const colors = {
+      concrete: 0xc9cabe,
+      edge: 0x414e49,
+      wall: 0xe0dfce,
+      frame: 0x495650,
+      glass: 0x87b7bc,
+      wood: 0xba8559,
+      darkWood: 0x79563e,
+      linen: 0xe5dfc3,
+      black: 0x26302f,
+      green: 0x507f5e,
+      softGreen: 0x86a276,
+      terra: 0xbc664c,
+      cream: 0xece2bf
+    };
+
+    const floorHeight = 1.96;
+    const groundFloor = .14;
+    const accents = [0x8eb17a, 0x8fb7bd, 0xc99674, 0xdabd73, 0x9ca7c5, 0xa8c48b];
+    const surfaces = [0xd4caba, 0xd5c4ab, 0xcfc0ad, 0xd2b999, 0x849394, 0xc7a682];
+    const floors = [];
+
+    function plant(group, x, z, size = 1, y = 0) {
+      tube(group, x, y + .13 * size, z, .17 * size, .26 * size, colors.terra);
+      tube(group, x, y + .264 * size, z, .143 * size, .022 * size, colors.darkWood);
+      tube(group, x, y + .39 * size, z, .027 * size, .28 * size, colors.green);
+      orb(group, x, y + .56 * size, z, .17 * size, .22 * size, .15 * size, colors.green, true);
+      orb(group, x + .13 * size, y + .47 * size, z, .13 * size, .15 * size, .12 * size, colors.softGreen, true);
+      orb(group, x - .14 * size, y + .47 * size, z + .04 * size, .12 * size, .14 * size, .1 * size, 0x63865b, true);
+    }
+
+    function person(group, x, z, shirt, facing = 0, seated = false, skin = 0xbd875e) {
+      const frontX = Math.sin(facing);
+      const frontZ = Math.cos(facing);
+      const sideX = Math.cos(facing);
+      const sideZ = -Math.sin(facing);
+      const hip = seated ? .33 : .43;
+      for (const side of [-1, 1]) {
+        const lx = x + side * sideX * .082;
+        const lz = z + side * sideZ * .082;
+        if (seated) {
+          box(group, lx + frontX * .095, hip, lz + frontZ * .095, .102, .11, .26, 0x3b4548, "solid", facing);
+          box(group, lx + frontX * .2, .18, lz + frontZ * .2, .095, .29, .095, 0x3b4548);
+        } else {
+          box(group, lx, .23, lz, .105, .41, .11, 0x3b4548);
+        }
+        const step = seated ? .23 : .035;
+        box(group, lx + frontX * step, .045, lz + frontZ * step, .12, .09, .18, colors.black, "solid", facing);
+        const ax = x + side * sideX * .19;
+        const az = z + side * sideZ * .19;
+        box(group, ax, hip + .16, az, .08, .26, .087, shirt, "solid", facing);
+        orb(group, ax, hip + .025, az, .045, .057, .045, skin);
+      }
+      box(group, x, hip + .165, z, .29, .34, .173, shirt, "solid", facing);
+      tube(group, x, hip + .361, z, .055, .09, skin);
+      orb(group, x, hip + .475, z, .102, .129, .102, skin);
+      orb(group, x - frontX * .019, hip + .532, z - frontZ * .019, .104, .085, .104, 0x41322b);
+    }
+
+    function sofa(group, x, z, width, color, facing = 0) {
+      function part(dx, y, dz, w, h, d, tint) {
+        const px = x + dx * Math.cos(facing) + dz * Math.sin(facing);
+        const pz = z - dx * Math.sin(facing) + dz * Math.cos(facing);
+        box(group, px, y, pz, w, h, d, tint, "solid", facing);
+      }
+      part(0, .09, 0, width - .13, .14, .61, colors.darkWood);
+      part(0, .23, 0, width, .25, .72, color);
+      part(0, .49, -.305, width, .39, .15, color);
+      for (const sign of [-1, 1]) {
+        part(sign * (width / 2 - .075), .38, 0, .15, .23, .7, color);
+        part(sign * width * .22, .367, .035, (width - .38) / 2, .10, .49, color);
+        part(sign * width * .24, .47, -.18, .25, .27, .14, sign > 0 ? colors.cream : colors.softGreen);
+      }
+    }
+
+    function desk(group, x, z, width, depth, y = .66, top = colors.wood) {
+      for (const sideX of [-1, 1]) {
+        for (const sideZ of [-1, 1]) {
+          box(group, x + sideX * (width / 2 - .1), y / 2, z + sideZ * (depth / 2 - .09), .07, y, .07, colors.frame, "metal");
+        }
+      }
+      box(group, x, y, z, width, .085, depth, top);
+    }
+
+    function chair(group, x, z, facing, color) {
+      tube(group, x, .035, z, .175, .055, colors.black);
+      tube(group, x, .153, z, .034, .245, colors.frame, "metal");
+      box(group, x, .294, z, .33, .09, .32, color, "solid", facing);
+      box(group, x - Math.sin(facing) * .145, .48, z - Math.cos(facing) * .145, .31, .27, .07, color, "solid", facing);
+    }
+
+    function roundTable(group, x, z, radius, y, color) {
+      tube(group, x, .035, z, radius * .48, .06, colors.frame);
+      tube(group, x, y / 2, z, .043, y, colors.frame, "metal");
+      tube(group, x, y, z, radius, .065, color);
+    }
+
+    function cup(group, x, y, z, color = colors.cream) {
+      tube(group, x, y + .045, z, .038, .082, color);
+      tube(group, x, y + .087, z, .027, .008, 0x6c4939);
+    }
+
+    function monitor(group, x, z, y, facing) {
+      box(group, x, y + .025, z, .22, .035, .15, colors.black, "solid", facing);
+      box(group, x, y + .17, z, .055, .25, .05, colors.black, "solid", facing);
+      box(group, x, y + .3, z, .45, .28, .062, colors.black, "solid", facing);
+      box(group, x + Math.sin(facing) * .034, y + .3, z + Math.cos(facing) * .034, .397, .225, .008, 0x649699, "solid", facing);
+      box(group, x + Math.sin(facing) * .205, y + .012, z + Math.cos(facing) * .205, .32, .025, .116, 0xd6d8cd, "solid", facing);
+    }
+
+    function backFacade(group, bays) {
+      const bayWidth = 8.7 / 6;
+      const start = -4.35;
+      const end = start + bays * bayWidth;
+      const mid = (start + end) / 2;
+      box(group, mid, .185, -2.58, end - start, .37, .15, colors.wall);
+      box(group, mid, 1.59, -2.58, end - start, .29, .15, colors.wall);
+      for (let bay = 0; bay < bays; bay++) {
+        const x = start + (bay + .5) * bayWidth;
+        box(group, x, .91, -2.59, bayWidth - .073, 1.112, .08, colors.glass, "window");
+        box(group, x, .91, -2.53, .035, 1.11, .038, colors.frame);
+        box(group, x, .91, -2.53, bayWidth - .035, .035, .038, colors.frame);
+        box(group, x, .36, -2.54, bayWidth, .055, .18, colors.frame);
+      }
+      for (let post = 0; post <= bays; post++) {
+        box(group, start + post * bayWidth, .89, -2.575, .08, 1.78, .18, colors.edge);
+      }
+      box(group, -4.27, .82, -1.7, .16, 1.64, 1.84, colors.wall);
+      box(group, -4.16, .82, -1.44, .075, 1.64, .065, colors.edge);
+      box(group, -4.16, .82, -2.12, .075, 1.64, .065, colors.edge);
+    }
+
+    function railing(group, x, z, length, alongX) {
+      const count = Math.ceil(length / .68);
+      for (let index = 0; index <= count; index++) {
+        const offset = length * (index / count - .5);
+        box(group, x + (alongX ? offset : 0), .27, z + (alongX ? 0 : offset), .038, .54, .038, colors.frame, "metal");
+      }
+      box(group, x, .53, z, alongX ? length + .05 : .049, .042, alongX ? .049 : length + .05, colors.frame, "metal");
+      box(group, x, .22, z, alongX ? length : .03, .022, alongX ? .03 : length, colors.frame, "metal");
+    }
+
+    function lobby(group) {
+      box(group, -.65, .016, 1.1, 1.6, .032, 2.55, 0xb7b9a5);
+      box(group, -1.95, .39, -.72, 2.12, .78, .62, colors.wood);
+      for (let index = 0; index < 15; index++) {
+        box(group, -2.93 + index * .14, .34, -.386, .06, .63, .037, colors.darkWood);
+      }
+      box(group, -1.95, .81, -.72, 2.24, .09, .75, colors.cream);
+      monitor(group, -2.16, -.73, .86, Math.PI);
+      person(group, -1.44, -1.33, 0x6d835c);
+      box(group, -1.13, 1.17, -2.26, 2.95, .55, .16, colors.edge);
+      group.userData.signs.push(label(group, "STILLWELL", -1.13, 1.17, -2.169, 2.83, .46, "#33423a", "#f1f4df", 78));
+
+      const doorCenter = -.64;
+      const doorZ = 2.44;
+      for (const offset of [-.95, 0, .95]) {
+        box(group, doorCenter + offset, .67, doorZ, .045, 1.34, .063, colors.frame, "metal");
+      }
+      box(group, doorCenter, 1.34, doorZ, 1.95, .065, .063, colors.frame, "metal");
+      for (const side of [-1, 1]) {
+        box(group, doorCenter + side * .475, .66, doorZ, .902, 1.29, .024, 0xa3dbe0, "entry");
+        box(group, doorCenter + side * .12, .64, doorZ + .049, .029, .24, .036, colors.frame, "metal");
+      }
+      sofa(group, 2.44, -.88, 2.15, 0x7f9d77);
+      roundTable(group, 2.43, .09, .35, .34, colors.cream);
+      box(group, 2.44, .382, .09, .22, .025, .14, colors.terra);
+      plant(group, 3.66, -.85, 1.22);
+      plant(group, -3.65, 1.49, .99);
+    }
+
+    function office(group) {
+      for (const x of [-2.17, 1.36]) {
+        desk(group, x, -.65, 2.46, 1.15, .65, 0xe1c49a);
+        for (const offset of [-.56, .56]) {
+          monitor(group, x + offset, -.49, .698, 0);
+          monitor(group, x + offset, -.85, .698, Math.PI);
+          chair(group, x + offset, .34, Math.PI, 0x557b76);
+          chair(group, x + offset, -1.59, 0, 0x557b76);
+        }
+      }
+      person(group, -1.61, .37, 0xad674b, Math.PI, true);
+      person(group, .80, -1.56, 0xc8a358, 0, true, 0x865b42);
+      person(group, 3.08, .93, 0x586c9c, -.95);
+      desk(group, -2.89, 1.66, 1.67, .55, .64, 0xd1a579);
+      monitor(group, -2.95, 1.7, .69, Math.PI);
+      chair(group, -2.95, 1.06, 0, colors.terra);
+      plant(group, 3.62, -1.94, 1.05);
+      plant(group, -3.71, -1.96, .78);
+    }
+
+    function meeting(group) {
+      box(group, -2.02, .024, -.18, 3.71, .046, 3.43, 0x9aab9d);
+      desk(group, -2.05, -.3, 2.86, 1.13, .68, 0xb67d58);
+      for (const x of [-2.92, -2.06, -1.2]) {
+        chair(group, x, .63, Math.PI, 0x5b7772);
+        chair(group, x, -1.24, 0, 0x5b7772);
+      }
+      box(group, -2.1, 1.05, -2.37, 2.42, .75, .1, colors.edge);
+      box(group, -2.1, 1.05, -2.309, 2.30, .63, .026, 0xeff0da);
+      for (let i = 0; i < 3; i++) {
+        box(group, -2.66 + i * .53, .91 + i * .11, -2.287, .29, .026, .023, 0x779a82);
+      }
+      box(group, -2.3, .738, -.14, .36, .035, .27, colors.cream);
+      cup(group, -1.51, .728, -.51);
+      sofa(group, 2.18, -1.37, 2.49, 0xb47057);
+      sofa(group, 3.51, .07, 1.35, 0xb47057, -Math.PI / 2);
+      roundTable(group, 2.13, -.35, .49, .32, colors.cream);
+      cup(group, 2.22, .356, -.39);
+      plant(group, .38, -1.65, 1.04);
+    }
+
+    function cafe(group) {
+      box(group, 2.86, .015, 0, 2.96, .03, 5.0, 0xc09870);
+      for (let index = 0; index < 11; index++) {
+        box(group, 1.50 + index * .258, .034, 0, .016, .015, 4.96, 0xa17b56);
+      }
+      box(group, -2.02, .35, -1.35, 2.78, .7, .62, colors.terra);
+      box(group, -2.02, .74, -1.35, 2.91, .1, .73, colors.cream);
+      box(group, -2.56, .98, -1.43, .67, .38, .39, colors.frame, "metal");
+      box(group, -2.56, .952, -1.218, .6, .13, .043, 0xb4c8bc, "metal");
+      cup(group, -1.48, .79, -1.32);
+      cup(group, -1.31, .79, -1.32);
+      person(group, -1.7, -2, 0x537b5b, 0, false, 0xd0a079);
+      for (const [x, z] of [[-2.7, .57], [-.76, 1.32], [2.84, -.37], [2.85, 1.43]]) {
+        roundTable(group, x, z, .36, .59, colors.cream);
+        chair(group, x - .5, z, Math.PI / 2, 0x637c68);
+        chair(group, x + .5, z, -Math.PI / 2, 0x637c68);
+        cup(group, x + .05, .625, z);
+      }
+      railing(group, 4.17, .05, 4.68, false);
+      railing(group, 2.87, -2.41, 2.6, true);
+      railing(group, 2.87, 2.4, 2.6, true);
+      plant(group, 3.69, -1.8, 1.1);
+      plant(group, 3.7, 2.07, .75);
+    }
+
+    function treadmill(group, x, z) {
+      box(group, x, .13, z, .70, .19, 1.38, colors.frame, "metal");
+      box(group, x, .233, z + .045, .54, .045, 1.12, colors.black);
+      for (const side of [-1, 1]) {
+        box(group, x + side * .29, .53, z - .54, .065, .70, .065, colors.frame, "metal");
+        box(group, x + side * .29, .868, z - .35, .066, .063, .43, colors.frame, "metal");
+      }
+      box(group, x, .94, z - .53, .51, .13, .18, colors.black).rotation.x = -.28;
+      box(group, x, .998, z - .51, .29, .018, .086, 0x74aba7).rotation.x = -.28;
+    }
+
+    function gym(group) {
+      for (const x of [-3.01, -1.96, -.91]) treadmill(group, x, -1.12);
+      desk(group, 2.24, -1.64, 2.29, .52, .56, colors.frame);
+      for (let i = 0; i < 5; i++) {
+        const x = 1.42 + i * .41;
+        box(group, x, .66, -1.64, .29, .054, .053, 0x7c8c88, "metal");
+        for (const side of [-1, 1]) {
+          const weight = tube(group, x + side * .115, .69, -1.64, .093, .064, colors.black);
+          weight.rotation.z = Math.PI / 2;
+        }
+      }
+      desk(group, 1.72, -.39, .5, 1.12, .34, colors.black);
+      desk(group, 3.01, -.39, .5, 1.12, .34, colors.black);
+      for (const x of [-1.72, -.65, .42]) {
+        box(group, x, .026, 1.22, .72, .052, 1.65, x < 0 ? 0x576f8b : 0x788d87);
+        tube(group, x + .23, .125, 1.86, .095, .11, colors.cream);
+      }
+      person(group, 2.43, 1.12, 0xc4a970, -.4);
+      plant(group, -3.65, 1.81, 1);
+    }
+
+    function roof(group) {
+      for (let index = 0; index < 33; index++) {
+        box(group, -4.22 + index * .263, .012, 0, .017, .012, 5.07, 0xaa8869);
+      }
+      box(group, 0, .21, -2.53, 8.54, .42, .16, colors.wall);
+      box(group, -4.24, .21, 0, .16, .42, 5.14, colors.wall);
+      railing(group, 4.2, 0, 4.99, false);
+      railing(group, .02, 2.47, 8.4, true);
+
+      for (const x of [-3.59, -.25]) {
+        for (const z of [-2.06, .07]) {
+          box(group, x, .76, z, .1, 1.52, .1, colors.darkWood);
+        }
+        box(group, x, 1.50, -.99, .125, .115, 2.33, colors.darkWood);
+      }
+      for (let index = 0; index < 8; index++) {
+        box(group, -1.92, 1.58, -2.12 + index * .335, 3.62, .07, .105, colors.wood);
+      }
+      sofa(group, -1.95, -1.55, 2.57, 0xd6c4a2);
+      roundTable(group, -2.02, -.55, .48, .34, 0xa77554);
+      cup(group, -1.95, .375, -.55);
+
+      box(group, 2.38, .18, -1.91, 2.85, .36, .84, 0x797d63);
+      box(group, 2.38, .369, -1.91, 2.71, .02, .70, colors.darkWood);
+      for (let index = 0; index < 5; index++) {
+        const height = index % 2 ? .31 : .23;
+        orb(group, 1.33 + index * .52, .45 + height * .49, -1.91, .28, height, .30, index % 2 ? colors.green : colors.softGreen, true);
+      }
+      sofa(group, 2.66, .63, 1.91, 0x829b72, -Math.PI / 2);
+      roundTable(group, 1.72, .66, .38, .31, colors.cream);
+      person(group, .49, -.66, 0xbe6a52, .52);
+      person(group, 1.11, .25, 0x547d8d, -2.5, false, 0x8d5e42);
+      plant(group, -3.63, 1.61, 1.33);
+      plant(group, 3.52, 1.76, 1.1);
+    }
+
+    const furnishings = [lobby, office, meeting, cafe, gym, roof];
+    floorData.forEach((details, index) => {
+      const group = new THREE.Group();
+      group.userData = {
+        floor: index,
+        baseY: groundFloor + index * floorHeight,
+        palette: new Map(),
+        signs: []
+      };
+      group.position.y = group.userData.baseY;
+      building.add(group);
+      floors.push(group);
+
+      box(group, 0, -.115, 0, 8.92, .235, 5.38, colors.edge);
+      box(group, 0, -.027, 0, 8.75, .06, 5.21, surfaces[index]);
+      box(group, 0, -.171, 2.702, 8.92, .044, .027, accents[index]);
+      box(group, 4.465, -.171, 0, .027, .044, 5.38, accents[index]);
+      group.userData.signs.push(label(group, details.code, 3.86, -.082, 2.71, .67, .135, "#414e49", "#f0f3e9", 102));
+
+      if (index < 5) {
+        backFacade(group, index === 3 ? 4 : 6);
+        box(group, -4.27, .865, 2.44, .13, 1.73, .13, colors.concrete);
+        box(group, 4.25, .865, -2.46, .13, 1.73, .13, colors.concrete);
+        box(group, -4.27, 1.663, 0, .13, .14, 5.03, colors.edge);
+      }
+
+      furnishings[index](group);
+    });
+
+    box(stage, 0, -.245, 1.10, 14.8, .26, 9.58, 0x9ca996);
+    box(stage, 0, -.117, .93, 14.51, .075, 9.03, 0xc5c9b5);
+    box(stage, 0, -.059, -.12, 12.68, .093, 6.08, 0xd2d1bf);
+    box(stage, 0, -.029, 2.77, 14.46, .11, .78, 0xc1bdad);
+    box(stage, 0, -.077, 4.17, 14.58, .085, 2.16, 0x626c6c);
+    box(stage, 0, -.046, 5.47, 14.55, .10, .45, 0xc1bdad);
+    box(stage, 0, .023, 3.142, 14.49, .039, .064, 0xe5dfc9);
+    box(stage, 0, .009, 5.24, 14.49, .045, .055, 0xe5dfc9);
+    for (let index = -5; index <= 5; index++) {
+      if (index > 1 && index < 4) continue;
+      box(stage, index * 1.24, -.03, 4.18, .46, .013, .037, 0xe6d9a2);
+    }
+    for (let index = 0; index < 7; index++) {
+      box(stage, 2.21 + index * .28, -.026, 4.19, .145, .016, 1.53, 0xdddccc);
+    }
+    for (let index = -9; index <= 9; index++) {
+      box(stage, index * .77, .029, 2.78, .016, .008, .69, 0xabab9c);
+    }
+
+    function tree(x, z, size, green) {
+      box(stage, x, .015, z, 1.02 * size, .065, .94 * size, 0x8c9d75);
+      tube(stage, x, .48 * size, z, .078 * size, .96 * size, 0x796048);
+      orb(stage, x, 1.28 * size, z, .58 * size, .68 * size, .48 * size, green, true);
+      orb(stage, x - .32 * size, 1.02 * size, z + .09 * size, .37 * size, .42 * size, .36 * size, 0x6a8b64, true);
+      orb(stage, x + .29 * size, 1.07 * size, z - .12 * size, .40 * size, .45 * size, .35 * size, 0x8ba475, true);
+    }
+
+    tree(-5.93, -.95, 1.18, 0x688e62);
+    tree(-5.9, 1.72, .91, 0x7d9a64);
+    tree(5.72, -1.84, 1.19, 0x608263);
+    tree(6.02, 1.6, .91, 0x7b9b6c);
+    tree(-3.82, -2.96, .85, 0x729469);
+    tree(3.72, -3.01, .93, 0x7d9b6f);
+    for (const x of [-6.64, 5.1, 6.68]) {
+      box(stage, x, .105, 2.8, .56, .17, .43, 0xa4a396);
+      orb(stage, x, .26, 2.8, .30, .17, .22, 0x759064, true);
+    }
+
+    function car(x, z, color, direction) {
+      box(stage, x, .205, z, 1.57, .285, .70, color);
+      box(stage, x - direction * .1, .405, z, .86, .25, .604, 0x72989d);
+      box(stage, x - direction * .12, .525, z, .73, .055, .623, color);
+      box(stage, x - direction * .13, .42, z, .045, .19, .617, color);
+      for (const dx of [-.47, .47]) {
+        for (const side of [-1, 1]) {
+          const wheel = tube(stage, x + dx, .13, z + side * .346, .13, .092, colors.black);
+          wheel.rotation.x = Math.PI / 2;
+          const hub = tube(stage, x + dx, .13, z + side * .397, .057, .018, 0xbfc7bf, "metal");
+          hub.rotation.x = Math.PI / 2;
+        }
+      }
+      for (const side of [-1, 1]) {
+        box(stage, x + direction * .79, .247, z + side * .227, .028, .075, .135, 0xffe6a6, "headlight");
+        box(stage, x - direction * .79, .238, z + side * .227, .028, .063, .108, 0xb9544d, "taillight");
+      }
+    }
+
+    car(-4.04, 3.69, 0xba6250, 1);
+    car(.10, 4.69, 0xc8ad69, -1);
+    car(5.53, 4.68, 0x75999b, -1);
+
+    for (const x of [-5.16, 4.7]) {
+      tube(stage, x, .78, 2.97, .037, 1.56, colors.frame, "metal");
+      box(stage, x, 1.52, 3.15, .072, .063, .42, colors.frame, "metal");
+      box(stage, x, 1.483, 3.34, .105, .039, .19, 0xffdc8e, "headlight");
+    }
+
+    const dayFade = new THREE.Color(0xaebcae);
+    const nightFade = new THREE.Color(0x344350);
+    const daySign = new THREE.Color(0xffffff);
+    const nightSign = new THREE.Color(0xb3bfc2);
+    const warmWindow = new THREE.Color(0xffcf85);
+    let frameId = 0;
+    let yawTarget = 0;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function scheduleFrame() {
+      if (!frameId) frameId = requestAnimationFrame(render);
+    }
+
+    function paint(material, dim) {
+      const { color, kind } = material.userData;
+      material.color.copy(color);
+      material.emissive.setHex(0x000000);
+      material.emissiveIntensity = 1;
+
+      if (isNight && kind === "window") {
+        material.color.copy(warmWindow);
+        material.emissive.setHex(0xf6a949);
+        material.emissiveIntensity = .78 * (1 - dim);
+      } else if (isNight && (kind === "headlight" || kind === "taillight")) {
+        material.emissive.copy(color);
+        material.emissiveIntensity = .8;
+      } else if (isNight && kind === "entry") {
+        material.emissive.setHex(0x48707c);
+        material.emissiveIntensity = .36 * (1 - dim);
+      }
+
+      material.color.lerp(isNight ? nightFade : dayFade, dim);
+      if (kind === "entry") material.opacity = .36 - dim * .17;
+    }
+
+    updateScene = () => {
+      sky.color.setHex(isNight ? 0x8aa4d7 : 0xf4faff);
+      sky.groundColor.setHex(isNight ? 0x43526c : 0x84907a);
+      sky.intensity = isNight ? .54 : .83;
+      sun.color.setHex(isNight ? 0x93addb : 0xffecd3);
+      sun.intensity = isNight ? .37 : 1.05;
+      fill.intensity = isNight ? .23 : .34;
+      for (const material of stageMaterials.values()) paint(material, 0);
+
+      for (const group of floors) {
+        const active = group.userData.floor === selected;
+        const dim = selected >= 0 && !active ? .7 : 0;
+        for (const material of group.userData.palette.values()) paint(material, dim);
+        for (const sign of group.userData.signs) {
+          sign.color.copy(isNight ? nightSign : daySign).lerp(isNight ? nightFade : dayFade, dim);
+        }
+      }
+      scheduleFrame();
+    };
+
+    function render() {
+      frameId = 0;
+      const easing = reducedMotion.matches ? 1 : .16;
+      let moving = false;
+
+      function approach(value, goal) {
+        if (Math.abs(value - goal) < .001) return goal;
+        const nextValue = value + (goal - value) * easing;
+        if (nextValue !== goal) moving = true;
+        return nextValue;
+      }
+
+      building.rotation.y = approach(building.rotation.y, yawTarget);
+      for (const group of floors) {
+        const { floor, baseY } = group.userData;
+        const active = floor === selected;
+        const separation = selected < 0 ? 0 : active ? .27 : Math.sign(floor - selected) * .20;
+        group.position.x = approach(group.position.x, active ? .84 : 0);
+        group.position.y = approach(group.position.y, baseY + separation);
+        group.position.z = approach(group.position.z, active ? 1.18 : 0);
+      }
+
+      renderer.render(scene, camera);
+      if (moving) scheduleFrame();
+    }
+
+    function resize() {
+      const width = Math.max(viewport.clientWidth, 1);
+      const height = Math.max(viewport.clientHeight, 1);
+      const aspect = width / height;
+      const verticalSpan = Math.max(15.45, 16.05 / aspect);
+      camera.left = -verticalSpan * aspect / 2;
+      camera.right = verticalSpan * aspect / 2;
+      camera.top = verticalSpan / 2;
+      camera.bottom = -verticalSpan / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height, false);
+      scheduleFrame();
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const canvas = renderer.domElement;
+    let gesture = null;
+
+    function pickFloor(event) {
+      const bounds = canvas.getBoundingClientRect();
+      pointer.set(
+        (event.clientX - bounds.left) / bounds.width * 2 - 1,
+        1 - (event.clientY - bounds.top) / bounds.height * 2
+      );
+      raycaster.setFromCamera(pointer, camera);
+      const [hit] = raycaster.intersectObjects(floors, true);
+      if (hit) selectFloor(hit.object.parent.userData.floor);
+    }
+
+    function clearGesture() {
+      gesture = null;
+      canvas.classList.remove("dragging");
+    }
+
+    canvas.addEventListener("pointerdown", event => {
+      if (!event.isPrimary || event.button !== 0) return;
+      gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, yaw: yawTarget, dragged: false };
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", event => {
+      if (!gesture || event.pointerId !== gesture.id) return;
+      const dx = event.clientX - gesture.x;
+      const dy = event.clientY - gesture.y;
+      if (!gesture.dragged && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+        gesture.dragged = true;
+        canvas.classList.add("dragging");
+      }
+      if (gesture.dragged) {
+        yawTarget = THREE.MathUtils.clamp(gesture.yaw + dx * .006, -.72, .72);
+        scheduleFrame();
+      }
+    });
+
+    canvas.addEventListener("pointerup", event => {
+      if (!gesture || event.pointerId !== gesture.id) return;
+      const distance = Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y);
+      if (!gesture.dragged && distance < 7) pickFloor(event);
+      clearGesture();
+    });
+    canvas.addEventListener("pointercancel", clearGesture);
+    canvas.addEventListener("lostpointercapture", clearGesture);
+
+    if ("ResizeObserver" in window) {
+      new ResizeObserver(resize).observe(viewport);
+    } else {
+      window.addEventListener("resize", resize);
+    }
+    resize();
+    updateScene();
+  }
+
+  try {
+    if (!window.THREE) throw new Error("Three.js could not be loaded.");
+    initScene(window.THREE);
+  } catch (error) {
+    const canvas = viewport.querySelector("canvas");
+    if (canvas) canvas.remove();
+    const hint = viewport.querySelector(".hint");
+    hint.hidden = true;
+    document.getElementById("scene-error").hidden = false;
+    updateScene = () => {};
+  }
+})();
+</script>
+</body>
+</html>

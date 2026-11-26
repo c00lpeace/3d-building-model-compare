@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>건물 둘러보기 | STILLWELL</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f7f7f2;
+    --paper: #fffefa;
+    --ink: #23332a;
+    --muted: #58695e;
+    --line: #dce1d8;
+    --accent: #315b49;
+    --accent-hover: #234838;
+    --on-accent: #fffefa;
+    --soft: #eaf0e7;
+    --scene-center: #eff0e7;
+    --scene-edge: #dfe5da;
+    --scene-dot: rgba(61, 86, 69, .15);
+    --viewer-height: clamp(540px, calc(100svh - 203px), 744px);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+      "Malgun Gothic", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    transition: background-color .35s, color .35s;
+    -webkit-font-smoothing: antialiased;
+  }
+  body.night {
+    color-scheme: dark;
+    --page: #18201f;
+    --paper: #212c2a;
+    --ink: #f2f1e7;
+    --muted: #bac8bf;
+    --line: #394943;
+    --accent: #b9d3be;
+    --accent-hover: #d1e5d2;
+    --on-accent: #172c21;
+    --soft: #2d3c36;
+    --scene-center: #33413f;
+    --scene-edge: #232e30;
+    --scene-dot: rgba(201, 220, 214, .15);
+  }
+  button { font: inherit; }
+  button:focus-visible, a:focus-visible, canvas:focus-visible {
+    outline: 2px solid #ac7243;
+    outline-offset: 3px;
+  }
+  button { -webkit-tap-highlight-color: transparent; }
+  .wrap { width: min(100% - 88px, 1380px); margin-inline: auto; }
+  .site-header { border-bottom: 1px solid var(--line); }
+  .header-inner {
+    min-height: 68px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    color: var(--ink);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: .19em;
+  }
+  .brand-mark {
+    width: 33px;
+    height: 33px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+  svg.icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: 0 0 auto;
+  }
+  .theme {
+    display: flex;
+    gap: 3px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--soft);
+  }
+  .theme button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 57px;
+    min-height: 34px;
+    padding: 4px 9px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .theme button .icon { width: 15px; height: 15px; }
+  .theme button[aria-pressed="true"] {
+    border-color: var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 1px 2px #172a1c12;
+  }
+  main { padding-block: 32px 32px; }
+  .intro { margin-bottom: 23px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(34px, 3.35vw, 52px);
+    line-height: 1.13;
+    letter-spacing: -.065em;
+    font-weight: 780;
+  }
+  .intro p {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.65;
+    word-break: keep-all;
+  }
+  .experience {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(272px, 306px);
+    align-items: stretch;
+    gap: 18px;
+  }
+  .stage {
+    position: relative;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--scene-edge);
+  }
+  .scene {
+    position: relative;
+    overflow: hidden;
+    height: var(--viewer-height);
+    border-radius: 19px;
+    isolation: isolate;
+    background: radial-gradient(ellipse at 50% 40%, var(--scene-center), var(--scene-edge) 86%);
+  }
+  .scene::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    background-image: radial-gradient(circle, var(--scene-dot) .8px, transparent 1px);
+    background-size: 15px 15px;
+    mask-image: linear-gradient(to bottom, #000 0%, #0007 88%, transparent);
+  }
+  #building {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: pan-y;
+    user-select: none;
+  }
+  #building.dragging { cursor: grabbing; }
+  #building:focus-visible { outline-offset: -4px; }
+  .floor-nav {
+    position: absolute;
+    top: 50%;
+    left: 22px;
+    z-index: 2;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--paper);
+    box-shadow: 0 4px 15px #1e302012;
+  }
+  .floor-nav button {
+    width: 45px;
+    height: 40px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
+  }
+  .floor-nav button:first-child { font-size: 12px; }
+  .floor-nav button:hover { background: var(--soft); color: var(--ink); }
+  .floor-nav button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+  .floor-divider { width: 22px; height: 1px; background: var(--line); margin: 1px 0; }
+  .scene-caption {
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    pointer-events: none;
+  }
+  .hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted);
+    font-weight: 650;
+    font-size: 12px;
+    user-select: none;
+  }
+  .touch-hint { display: none; }
+  .reset {
+    display: grid;
+    place-items: center;
+    width: 39px;
+    height: 39px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px #152a1b0b;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .reset:hover { background: var(--soft); }
+  .info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 25px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--paper);
+  }
+  .info-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 25px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .info-eyebrow .icon { color: var(--accent); }
+  .level-tag {
+    display: inline-grid;
+    place-items: center;
+    min-width: 34px;
+    padding: 4px 8px;
+    background: var(--soft);
+    color: var(--accent);
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .035em;
+  }
+  .info h2 {
+    margin: 9px 0 10px;
+    font-size: 29px;
+    font-weight: 770;
+    line-height: 1.24;
+    letter-spacing: -.055em;
+    word-break: keep-all;
+  }
+  .description {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+    word-break: keep-all;
+  }
+  .feature-block {
+    margin-top: 26px;
+    padding-top: 19px;
+    border-top: 1px solid var(--line);
+  }
+  .feature-block h3 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 770;
+  }
+  .features { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+  .features li {
+    min-height: 29px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .features li::before {
+    width: 17px;
+    height: 17px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 5px;
+    background: var(--soft);
+    color: var(--accent);
+    content: "✓";
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .panel-actions { display: grid; gap: 7px; margin-top: auto; padding-top: 30px; }
+  .next {
+    min-height: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 13px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 13px;
+    font-weight: 750;
+    text-align: left;
+    cursor: pointer;
+  }
+  .next:hover { background: var(--accent-hover); }
+  .all-link {
+    min-height: 34px;
+    border: 0;
+    border-radius: 6px;
+    color: var(--accent);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .all-link:hover { background: var(--soft); }
+  .all-link[hidden] { display: none; }
+
+  @media (max-width: 1030px) {
+    .wrap { width: calc(100% - 52px); }
+    .experience { grid-template-columns: minmax(0, 1fr) 265px; gap: 14px; }
+    .info { padding: 21px; }
+    .floor-nav { left: 12px; }
+    .scene-caption { left: 14px; right: 14px; }
+  }
+  @media (max-width: 790px) {
+    .wrap { width: calc(100% - 36px); }
+    .header-inner { min-height: 60px; }
+    main { padding-top: 26px; }
+    .intro { margin-bottom: 17px; }
+    .experience { grid-template-columns: 1fr; }
+    .scene { height: clamp(340px, 72vw, 490px); border-radius: 19px 19px 0 0; }
+    .floor-nav {
+      position: static;
+      transform: none;
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 3px;
+      padding: 8px 10px;
+      border: 0;
+      border-top: 1px solid var(--line);
+      border-radius: 0 0 19px 19px;
+      box-shadow: none;
+    }
+    .floor-nav button { flex: 1 1 0; width: auto; min-width: 31px; height: 42px; }
+    .floor-divider { width: 1px; height: 20px; flex: 0 0 1px; margin: 0 2px; }
+    .scene-caption { bottom: 12px; }
+    .info { padding: 22px; }
+    .info-eyebrow { margin-bottom: 16px; }
+    .feature-block { margin-top: 18px; padding-top: 15px; }
+    .panel-actions { padding-top: 19px; }
+  }
+  @media (pointer: coarse) {
+    .mouse-hint { display: none; }
+    .touch-hint { display: inline; }
+  }
+  @media (max-width: 360px) {
+    .wrap { width: calc(100% - 24px); }
+    .floor-nav { padding-inline: 6px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#main" aria-label="STILLWELL 건물 둘러보기">
+      <span class="brand-mark" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z M4 12l8 4.5 8-4.5 M4 16.5l8 4.5 8-4.5"/>
+        </svg>
+      </span>
+      STILLWELL
+    </a>
+    <div class="theme" role="group" aria-label="낮과 밤">
+      <button type="button" data-theme="day" aria-pressed="true">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></svg>
+        낮
+      </button>
+      <button type="button" data-theme="night" aria-pressed="false">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 15A8.8 8.8 0 0 1 9 3.2 9 9 0 1 0 20.8 15Z"/></svg>
+        밤
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <div class="intro">
+    <h1>건물 둘러보기</h1>
+    <p>로비부터 루프테라스까지, 층을 선택해 스틸웰의 공간을 만나보세요.</p>
+  </div>
+
+  <div class="experience">
+    <section class="stage" aria-label="스틸웰 3D 건물">
+      <div class="scene">
+        <canvas id="building" tabindex="0" role="img"
+          aria-label="스틸웰의 앞면이 열린 3D 건물. 층을 클릭해 선택하고 좌우로 드래그하거나 방향키를 눌러 회전할 수 있습니다.">
+          옆의 층 선택 버튼으로 스틸웰의 공간을 둘러볼 수 있습니다.
+        </canvas>
+        <div class="scene-caption">
+          <span class="hint">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M6 8l-4 4 4 4m12-8 4 4-4 4"/></svg>
+            <span class="mouse-hint">드래그하여 회전</span>
+            <span class="touch-hint">좌우로 밀어 회전</span>
+          </span>
+          <button id="reset-view" type="button" class="reset" aria-label="시점 초기화" title="시점 초기화">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1.7 7.2M4 4v6h6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="floor-nav" id="floor-nav" role="group" aria-label="층 선택"></div>
+    </section>
+
+    <aside class="info" aria-label="선택한 공간 정보">
+      <p class="info-eyebrow">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16m-9 0v10"/></svg>
+        공간 안내
+      </p>
+      <div id="room-info" aria-live="polite" aria-atomic="true">
+        <span id="room-level" class="level-tag">전체</span>
+        <h2 id="room-name">스틸웰 전체</h2>
+        <p id="room-description" class="description"></p>
+        <div class="feature-block">
+          <h3>주요 시설</h3>
+          <ul class="features" id="room-features"></ul>
+        </div>
+      </div>
+      <div class="panel-actions">
+        <button id="next-floor" type="button" class="next">
+          <span id="next-label">1F 로비 둘러보기</span>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+        </button>
+        <button id="all-floors" type="button" class="all-link" hidden>전체 보기</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+const rooms = [
+  { tag: "전체", name: "스틸웰 전체",
+    description: "스틸웰에는 일하고, 만나고, 쉬어가는 공간이 한 건물에 모여 있습니다. 층을 선택하면 각 공간의 안쪽을 자세히 볼 수 있어요.",
+    features: ["5개 층과 루프테라스", "업무·회의·휴식 공간", "1층 안내 데스크"] },
+  { tag: "1F", name: "로비",
+    description: "유리문을 열고 들어서면 스틸웰의 안내 데스크가 맞이합니다. 창가 소파에서 일행을 기다리거나 잠시 쉬어갈 수 있어요.",
+    features: ["리셉션 데스크", "유리 출입구", "대기 라운지"] },
+  { tag: "2F", name: "사무 공간",
+    description: "창을 따라 놓인 책상에서 차분하게 일할 수 있는 층입니다. 개방형 좌석 사이로 넉넉한 통로를 두었습니다.",
+    features: ["개방형 업무 좌석", "모니터가 있는 책상", "창가 수납 공간"] },
+  { tag: "3F", name: "회의·라운지",
+    description: "긴 테이블에서는 여럿이 자료를 펼쳐놓고 이야기할 수 있어요. 맞은편 소파는 짧은 대화나 휴식을 위한 자리입니다.",
+    features: ["공용 회의 테이블", "프레젠테이션 화면", "소파 라운지"] },
+  { tag: "4F", name: "카페·테라스",
+    description: "카운터에서 커피를 받아 테이블에 앉아보세요. 날이 좋으면 데크로 나가 바깥 공기를 즐길 수 있어요.",
+    features: ["커피 카운터", "카페 테이블", "야외 데크와 파라솔"] },
+  { tag: "5F", name: "피트니스",
+    description: "잠깐의 운동으로 하루에 리듬을 더하는 층입니다. 러닝머신과 실내 자전거, 스트레칭 매트를 마련했습니다.",
+    features: ["러닝머신", "실내 자전거와 덤벨", "스트레칭 매트"] },
+  { tag: "RF", name: "루프테라스",
+    description: "옥상 정원에서 바람을 쐬며 하루를 마무리해 보세요. 퍼걸러 아래 소파와 화분 사이에 편히 앉을 자리가 있습니다.",
+    features: ["퍼걸러 그늘", "야외 소파", "옥상 정원"] }
+];
+
+const levelHeights = [0, 0, 2.24, 4.35, 6.46, 8.57, 10.68];
+const groups = levelHeights.map((height, id) => ({
+  id, height, solid: [], clear: [], shift: [0, height, 0], fade: 0, focus: 0
+}));
+const [site, lobby, office, meeting, cafe, gym, roof] = groups;
+const colorTable = new Map();
+const PI = Math.PI;
+const V = {
+  minus: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  cross: (a, b) => [a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0]],
+  dot: (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2],
+  unit(a) {
+    const length = Math.hypot(...a);
+    return length ? a.map(value => value / length) : [0, 0, 0];
+  }
+};
+const sun = V.unit([-.48, .86, .54]);
+
+function rgb(hex) {
+  if (!colorTable.has(hex)) {
+    const value = parseInt(hex.slice(1), 16);
+    colorTable.set(hex, [(value >> 16) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255]);
+  }
+  return colorTable.get(hex);
+}
+
+function triangle(group, a, b, c, color, glow = 0, opacity = 1) {
+  const normal = V.unit(V.cross(V.minus(b, a), V.minus(c, a)));
+  if (!normal.some(Boolean)) return;
+  const alphas = Array.isArray(opacity) ? opacity : [opacity, opacity, opacity];
+  const transparent = alphas.some(alpha => alpha < 1);
+  const light = transparent ? 1 : .73 + .27 * Math.max(0, V.dot(normal, sun));
+  const [red, green, blue] = rgb(color).map(channel => channel * light);
+  const data = transparent ? group.clear : group.solid;
+  [a, b, c].forEach((point, index) => {
+    data.push(point[0], point[1], point[2], red, green, blue, glow, alphas[index]);
+  });
+}
+
+function quad(group, a, b, c, d, color, glow = 0, opacity = 1, tile = false) {
+  if (tile) {
+    const columns = Math.ceil(Math.hypot(...V.minus(b, a)) / 1.45);
+    const rows = Math.ceil(Math.hypot(...V.minus(d, a)) / 1.45);
+    if (columns > 1 || rows > 1) {
+      const at = (u, v) => a.map((coordinate, i) => coordinate + (b[i] - coordinate)*u + (d[i] - coordinate)*v);
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < columns; i++) {
+          const u = i / columns, uu = (i + 1) / columns;
+          const v = j / rows, vv = (j + 1) / rows;
+          quad(group, at(u, v), at(uu, v), at(uu, vv), at(u, vv), color, glow, opacity);
+        }
+      }
+      return;
+    }
+  }
+  triangle(group, a, b, c, color, glow, opacity);
+  triangle(group, a, c, d, color, glow, opacity);
+}
+
+function box(g, x, y, z, width, height, depth, color, glow = 0, opacity = 1) {
+  const l = x - width / 2, r = x + width / 2;
+  const b = z - depth / 2, f = z + depth / 2, t = y + height;
+  const A = [l,y,b], B = [r,y,b], C = [r,y,f], D = [l,y,f];
+  const E = [l,t,b], F = [r,t,b], G = [r,t,f], H = [l,t,f];
+  const faces = [[E,H,G,F], [D,C,G,H], [B,A,E,F], [C,B,F,G], [A,D,H,E], [D,A,B,C]];
+  faces.forEach((face, index) => {
+    const tint = typeof color === "string" ? color : color[index] || color[0];
+    quad(g, ...face, tint, glow, opacity, opacity === 1 && (width > 2.9 || depth > 2.9));
+  });
+}
+
+function rod(g, a, b, radius, color, sides = 7, endRadius = radius, glow = 0) {
+  const axis = V.unit(V.minus(b, a));
+  const u = V.unit(V.cross(axis, Math.abs(axis[1]) > .91 ? [1,0,0] : [0,1,0]));
+  const v = V.cross(axis, u);
+  const ring = (point, r) => Array.from({ length: sides }, (_, i) => {
+    const angle = 2 * PI * i / sides;
+    return point.map((coordinate, j) => coordinate + r * (Math.cos(angle)*u[j] + Math.sin(angle)*v[j]));
+  });
+  const bottom = ring(a, radius), top = ring(b, endRadius);
+  for (let i = 0; i < sides; i++) {
+    const j = (i + 1) % sides;
+    quad(g, bottom[i], bottom[j], top[j], top[i], color, glow);
+    triangle(g, a, bottom[j], bottom[i], color, glow);
+    triangle(g, b, top[i], top[j], color, glow);
+  }
+}
+
+function ellipsoid(g, x, y, z, rx, ry, rz, colors, sides = 8, rows = 5) {
+  const ringPoint = (row, side) => {
+    const latitude = PI * (row / rows - .5);
+    const longitude = 2 * PI * side / sides;
+    return [x + rx*Math.cos(latitude)*Math.cos(longitude),
+      y + ry*Math.sin(latitude), z + rz*Math.cos(latitude)*Math.sin(longitude)];
+  };
+  for (let row = 0; row < rows; row++) {
+    for (let side = 0; side < sides; side++) {
+      const tint = typeof colors === "string" ? colors : colors[(row * 7 + side * 3 + side % 2) % colors.length];
+      quad(g, ringPoint(row, side+1), ringPoint(row, side), ringPoint(row+1, side), ringPoint(row+1, side+1), tint);
+    }
+  }
+}
+
+function shadow(g, x, y, z, rx, rz, strength = .21) {
+  const center = [x,y,z];
+  for (let index = 0; index < 18; index++) {
+    const a = 2 * PI * index / 18, b = 2 * PI * (index + 1) / 18;
+    const edge = angle => [x + rx*Math.cos(angle), y, z + rz*Math.sin(angle)];
+    triangle(g, center, edge(b), edge(a), "#26332b", 0, [strength, 0, 0]);
+  }
+}
+
+const materials = {
+  stone: ["#e7d8bd", "#c59375", "#c9af92", "#d5b296", "#c9af92", "#9f765d"],
+  cap: "#efe1c7",
+  cut: "#b97960",
+  steel: "#3c514b",
+  paleSteel: "#7a8c80",
+  oak: "#bb895f",
+  oakTop: ["#dbaf80", "#b58057"],
+  darkOak: "#845f47",
+  seats: "#566f60",
+  cream: "#e6d7b9",
+  leaf: ["#648451", "#52774e", "#809858", "#416443"],
+  skin: "#c58a67"
+};
+
+function plant(g, x, y, z, size = 1, potColor = "#b87960") {
+  shadow(g, x, y + .008, z, .31*size, .29*size, .2);
+  rod(g, [x,y,z], [x,y+.29*size,z], .16*size, potColor, 8, .21*size);
+  rod(g, [x,y+.291*size,z], [x,y+.302*size,z], .176*size, "#584739", 8);
+  for (let i = 0; i < 5; i++) {
+    const angle = i * 2.4;
+    const dx = Math.cos(angle)*size, dz = Math.sin(angle)*size;
+    const h = (.48 + ((i*3)%5)*.057)*size;
+    rod(g, [x,y+.28*size,z], [x+dx*.15,y+h,z+dz*.15], .016*size, "#637a4d", 5);
+    ellipsoid(g, x+dx*.18, y+h+.034*size, z+dz*.18,
+      .145*size, .09*size, .13*size, materials.leaf[i % materials.leaf.length], 6, 3);
+  }
+}
+
+function planter(g, x, y, z, width, color = "#9a7761") {
+  shadow(g, x, y + .009, z, width*.69, .42, .22);
+  box(g, x, y, z, width, .26, .54, color);
+  box(g, x, y+.26, z, width-.07, .025, .43, "#594e3d");
+  const count = Math.max(2, Math.round(width * 3));
+  for (let i = 0; i < count; i++) {
+    const px = x - width*.38 + i * width*.76/(count-1);
+    const tone = materials.leaf[i % materials.leaf.length];
+    ellipsoid(g, px, y+.39+(i%2)*.07, z+(i%3-1)*.07, .22, .19+(.05*(i%3)), .205, tone, 7, 4);
+  }
+}
+
+function person(g, x, y, z, shirt, direction = 0, sitting = false, skin = materials.skin, scale = 1) {
+  const c = Math.cos(direction), s = Math.sin(direction);
+  const p = (a, b, d) => [x+(a*c+d*s)*scale, y+b*scale, z+(-a*s+d*c)*scale];
+  const limb = (a, b, radius, color) => rod(g, p(...a), p(...b), radius*scale, color, 6);
+  const hip = sitting ? .53 : .72;
+  shadow(g, x, y+.008, z, .27*scale, .23*scale, .16);
+  for (const side of [-1, 1]) {
+    const foot = side * (sitting ? .12 : .14);
+    const knee = sitting ? .27 : .045*side;
+    limb([side*.09,hip,0], [foot,.37,knee], .057, "#404a45");
+    limb([foot,.37,knee], [foot,.08,knee-.018], .05, "#404a45");
+    const shoe = p(foot, .07, knee+.035);
+    ellipsoid(g, ...shoe, .085*scale, .051*scale, .10*scale, "#323c36", 6, 3);
+    const shoulder = [side*.17,hip+.31,0];
+    const elbow = [side*.214,hip+.16,sitting ? .126 : .025];
+    limb(shoulder, elbow, .049, shirt);
+    limb(elbow, [side*.19,hip+.055,sitting ? .24 : .02], .038, skin);
+  }
+  rod(g, p(0,hip,0), p(0,hip+.35,0), .132*scale, shirt, 8, .171*scale);
+  limb([0,hip+.32,0], [0,hip+.433,0], .052, skin);
+  ellipsoid(g, ...p(0,hip+.51,0), .105*scale, .117*scale, .105*scale, skin, 8, 5);
+  ellipsoid(g, ...p(0,hip+.56,-.017), .109*scale, .085*scale, .104*scale, "#473b34", 8, 4);
+}
+
+function tree(x, z, size = 1) {
+  const y = -.112;
+  shadow(site, x-.17, y+.013, z+.26, 1.31*size, .87*size, .30);
+  rod(site, [x,y,z], [x-.07*size,y+1.68*size,z], .115*size, "#79614b", 7, .053*size);
+  rod(site, [x,y+.78*size,z], [x+.47*size,y+1.45*size,z+.12*size], .058*size, "#79614b", 6, .029*size);
+  rod(site, [x,y+1.03*size,z], [x-.38*size,y+1.57*size,z-.28*size], .057*size, "#79614b", 6, .027*size);
+  const canopy = [
+    [-.43,1.65,-.27,.58,.67,.54], [.43,1.67,.12,.55,.61,.55],
+    [.02,1.52,.39,.64,.57,.53], [.09,2.12,-.13,.62,.68,.59],
+    [-.23,1.86,.10,.67,.65,.64]
+  ];
+  const tones = ["#6f8e5c", "#7d9963", "#608151", "#8ca369", "#54764e"];
+  canopy.forEach(([dx,dy,dz,rx,ry,rz], i) => {
+    const palette = [tones[i], tones[i], tones[(i+1)%5], tones[(i+4)%5]];
+    ellipsoid(site, x+dx*size, y+dy*size, z+dz*size, rx*size, ry*size, rz*size, palette, 8, 5);
+  });
+}
+
+function car(x, z, paint, roofPaint, direction = 1) {
+  const y = -.094;
+  const p = (a, b, d) => [x + a*direction, y + b, z + d*direction];
+  shadow(site, x, y+.006, z, 1.33, .65, .32);
+  box(site, x, y+.16, z, 2.15, .29, .88, paint);
+  box(site, x, y+.125, z, 2.19, .072, .86, "#4a514b");
+  box(site, x, y+.445, z, 1.91, .065, .84, roofPaint);
+  const a = p(-.74,.49,-.39), b = p(.63,.49,-.39);
+  const c = p(.63,.49,.39), d = p(-.74,.49,.39);
+  const e = p(-.51,.77,-.30), f = p(.30,.77,-.30);
+  const h = p(-.51,.77,.30), k = p(.30,.77,.30);
+  quad(site, a,d,h,e,"#81968b");
+  quad(site, c,b,f,k,"#879c91");
+  quad(site, d,c,k,h,"#637d74");
+  quad(site, b,a,e,f,"#637d74");
+  quad(site, e,h,k,f,roofPaint);
+  rod(site, p(-.06,.495,.397), p(-.10,.773,.306), .027, roofPaint, 5);
+  rod(site, p(-.06,.495,-.397), p(-.10,.773,-.306), .027, roofPaint, 5);
+  for (const end of [-1, 1]) {
+    for (const side of [-1, 1]) {
+      rod(site, p(end*.64,.19,side*.398), p(end*.64,.19,side*.5), .188, "#303a37", 10);
+      rod(site, p(end*.64,.19,side*.5), p(end*.64,.19,side*.513), .086, "#b1b1a1", 9);
+    }
+    box(site, x+.995*direction, y+.312, z+end*.28, .178, .09, .18, "#f6dfae", .83);
+    box(site, x-.995*direction, y+.31, z+end*.28, .155, .076, .17, "#994c40", .2);
+  }
+}
+
+function streetLight(x, z) {
+  rod(site, [x,-.10,z], [x,1.62,z], .045, "#556a5e");
+  rod(site, [x,1.62,z], [x,1.72,z+.35], .038, "#556a5e");
+  box(site, x, 1.66, z+.40, .22, .05, .26, "#ffe5a3", 1);
+  box(site, x, 1.71, z+.40, .24, .075, .28, "#556a5e");
+}
+
+function buildSite() {
+  shadow(site, .13, -.535, .96, 9.5, 7.05, .24);
+  box(site, 0, -.50, .78, 16.05, .31, 11.55,
+    ["#c9b596","#ac997f","#ad9a7f","#b8a187","#b19a81","#a69278"]);
+  box(site, 0, -.19, -.52, 15.96, .06, 8.92, "#a8ab83");
+  box(site, 0, -.126, -.22, 10.22, .035, 6.61, "#c8bfab");
+  box(site, 0, -.13, 3.46, 16, .045, .98, "#ded1b8");
+  box(site, 0, -.165, 5.13, 16.11, .055, 2.49, "#626c64");
+  box(site, 0, -.134, 3.935, 16.14, .056, .088, "#eee0c6");
+  box(site, 0, -.162, 6.43, 16.12, .074, .29, "#d8cbb3");
+  for (let x = -7.5; x < 8; x += .75) {
+    box(site, x, -.084, 3.50, .014, .004, .83, "#b8ac96");
+  }
+  for (let x = -7.3; x < 5.05; x += 1.34) {
+    box(site, x, -.108, 5.12, .58, .004, .040, "#d2cbb0");
+  }
+  for (let z = 4.08; z < 6.18; z += .31) {
+    box(site, 6.58, -.107, z, 1.03, .005, .135, "#e5dcc7");
+  }
+  box(site, 0, -.089, 2.87, 3.72, .076, 1.13, "#d7c8ad");
+  box(site, 0, -.013, 2.72, 3.5, .124, .85, "#e1d1b5");
+  box(site, 0, .111, 2.66, 3.3, .124, .55, "#ead9bd");
+  shadow(site, 0, -.087, .04, 5.85, 3.59, .25);
+
+  tree(-6.23, 1.73, 1.04);
+  tree(-6.42, -2.31, .82);
+  tree(6.40, -2.48, 1.12);
+  tree(6.68, 1.20, .93);
+  planter(site, -6.35, -.117, -.13, 1.36, "#a89475");
+  planter(site, 6.21, -.117, -1, 1.27, "#a89475");
+  plant(site, -5.49, -.106, 2.84, .76, "#a5876b");
+  plant(site, 5.25, -.106, 2.86, .69, "#a5876b");
+  streetLight(-7.03, 3.26);
+  streetLight(7.49, 3.24);
+  car(-3.21, 5.61, "#a65d49", "#bb7961");
+  car(3.45, 4.62, "#55746c", "#78958a", -1);
+  person(site, -4.73, -.078, 3.56, "#d3a06b", .83, false, "#af7557", .92);
+}
+
+function shell(g, height, wallColor, floorColor) {
+  box(g, 0, 0, -.055, 9.30, .235, 5.49, materials.stone);
+  box(g, 0, .045, 2.71, 9.36, .114, .071, materials.cut);
+  box(g, 0, .216, 2.678, 9.34, .04, .10, materials.cap);
+  box(g, 0, .235, -.06, 8.98, .021, 5.18, floorColor);
+  box(g, 0, .255, -2.70, 9.13, height-.255, .17, wallColor);
+  box(g, -4.49, .255, -.099, .17, height-.255, 5.21, wallColor);
+  box(g, 0, height-.048, -2.71, 9.23, .069, .22, materials.cap);
+  box(g, -4.5, height-.048, -.067, .22, .069, 5.3, materials.cap);
+  box(g, -4.48, .25, 2.545, .26, height-.25, .21, "#b98269");
+  box(g, 4.47, .25, -2.57, .29, height-.25, .21, "#ba8b71");
+  box(g, 4.48, .25, 2.49, .145, height-.25, .15, "#c99879");
+  box(g, 0, .258, -2.59, 8.77, .083, .059, "#a78d73");
+}
+
+function windowBay(g, x, y, width, height, glass = "#9eb1a4") {
+  const z = -2.577;
+  box(g, x, y, z, width, height, .066, "#6d8377");
+  box(g, x, y+.066, z+.041, width-.13, height-.132, .014, glass, .86);
+  box(g, x, y+.025, z+.063, width+.09, .045, .096, "#e0d4b9");
+  box(g, x, y+height-.055, z+.06, width-.02, .055, .04, "#d5c9ad");
+  box(g, x, y+.062, z+.056, .044, height-.116, .033, "#e1d6be");
+  box(g, x-width*.34, y+height*.68, z+.054, width*.19, .027, .013, "#c4d0ba", .43);
+}
+
+function rail(g, x1, z1, x2, z2, y, height = .69) {
+  const length = Math.hypot(x2-x1, z2-z1);
+  const sections = Math.ceil(length / .76);
+  rod(g, [x1,y+height,z1], [x2,y+height,z2], .026, "#6a8075", 6);
+  for (let i = 0; i <= sections; i++) {
+    const q = i / sections;
+    const x = x1 + q*(x2-x1), z = z1 + q*(z2-z1);
+    rod(g, [x,y,z], [x,y+height,z], .022, "#75877b", 6);
+  }
+  const x = (x1+x2)/2, z = (z1+z2)/2;
+  const half = length*.495;
+  if (Math.abs(x2-x1) > Math.abs(z2-z1)) {
+    quad(g, [x-half,y+.09,z], [x+half,y+.09,z], [x+half,y+height-.026,z], [x-half,y+height-.026,z], "#bcd3c9", 0, .25);
+  } else {
+    quad(g, [x,y+.09,z+half], [x,y+.09,z-half], [x,y+height-.026,z-half], [x,y+height-.026,z+half], "#bcd3c9", 0, .25);
+  }
+}
+
+function sofa(g, x, y, z, width, color = materials.seats) {
+  shadow(g, x, y+.008, z, width*.64, .64, .28);
+  for (const dx of [-1,1]) {
+    for (const dz of [-1,1]) box(g, x+dx*(width*.5-.15), y, z+dz*.29, .09, .125, .088, materials.darkOak);
+  }
+  box(g, x, y+.11, z, width, .26, .79, color);
+  box(g, x, y+.30, z-.32, width, .43, .20, color);
+  for (const side of [-1,1]) box(g, x+side*(width*.5-.076), y+.29, z, .152, .245, .76, color);
+  const count = Math.max(1, Math.round(width / .66));
+  const seatWidth = (width - .32) / count;
+  for (let i = 0; i < count; i++) {
+    const px = x - (width-.32)/2 + (i+.5)*seatWidth;
+    box(g, px, y+.335, z+.056, seatWidth-.024, .115, .565, color);
+    box(g, px, y+.435, z-.212, seatWidth-.055, .242, .155, color);
+  }
+}
+
+function coffeeTable(g, x, y, z, size = 1, top = "#d1a97d") {
+  shadow(g, x, y+.008, z, .61*size, .48*size, .21);
+  rod(g, [x,y,z], [x,y+.066,z], .23*size, materials.steel, 9);
+  rod(g, [x,y+.065,z], [x,y+.366*size,z], .047*size, materials.steel, 7);
+  rod(g, [x,y+.366*size,z], [x,y+.425*size,z], .435*size, top, 12);
+}
+
+function table(g, x, y, z, width, depth, height, topColor = materials.oakTop) {
+  shadow(g, x, y+.008, z, width*.58, depth*.69, .19);
+  for (const side of [-1,1]) {
+    for (const end of [-1,1]) {
+      box(g, x+side*(width*.5-.10), y, z+end*(depth*.5-.10), .068, height-.07, .068, materials.steel);
+    }
+  }
+  box(g, x, y+height-.085, z, width, .085, depth, topColor);
+}
+
+function chair(g, x, y, z, color, front = 1, width = .46) {
+  const depth = .42;
+  for (const side of [-1,1]) {
+    for (const end of [-1,1]) {
+      box(g, x+side*(width/2-.062), y, z+end*.145, .043, .38, .043, materials.steel);
+    }
+  }
+  box(g, x, y+.375, z, width, .084, depth, color);
+  const back = z-front*.17;
+  for (const side of [-1,1]) box(g, x+side*(width/2-.06), y+.43, back, .04, .28, .049, materials.steel);
+  box(g, x, y+.585, back, width-.033, .17, .075, color);
+}
+
+function mug(g, x, y, z, color = "#f0dfbe") {
+  rod(g, [x,y,z], [x,y+.092,z], .045, color, 7);
+  rod(g, [x,y+.092,z], [x,y+.096,z], .033, "#6c4d3b", 7);
+}
+
+const letterMap = {
+  S: ["01111","10000","10000","01110","00001","00001","11110"],
+  T: ["11111","00100","00100","00100","00100","00100","00100"],
+  I: ["111","010","010","010","010","010","111"],
+  L: ["1000","1000","1000","1000","1000","1000","1111"],
+  W: ["10001","10001","10001","10101","10101","11011","10001"],
+  E: ["11111","10000","10000","11110","10000","10000","11111"]
+};
+
+function sign(g, word, x, y, z) {
+  const step = .041;
+  const width = [...word].reduce((sum, letter) => sum + letterMap[letter][0].length + 1, -1);
+  box(g, x, y-.043, z-.062, width*step+.42, .365, .12, "#36584a");
+  let column = 0;
+  for (const letter of word) {
+    const pattern = letterMap[letter];
+    pattern.forEach((row, index) => {
+      [...row].forEach((pixel, i) => {
+        if (pixel === "1") {
+          const px = x + (column+i-(width-1)/2)*step;
+          const py = y + (6-index)*step;
+          quad(g, [px-step/2,py,z], [px+step/2,py,z], [px+step/2,py+step,z],
+            [px-step/2,py+step,z], "#f6e9cb", .44);
+        }
+      });
+    });
+    column += pattern[0].length + 1;
+  }
+}
+
+function buildLobby() {
+  shell(lobby, 2.24, "#d8c9ad", "#e1d2b7");
+  windowBay(lobby, -3.03, .72, 1.72, 1.23, "#829f90");
+  windowBay(lobby, 2.58, .70, 2.61, 1.27, "#8fa99b");
+  box(lobby, -.18, .32, -2.574, 2.34, 1.58, .10, "#708b78");
+  for (let i = -5; i <= 5; i++) {
+    box(lobby, -.18+i*.18, .34, -2.512, .055, 1.48, .035, "#92a38a");
+  }
+  for (let i = -4; i <= 4; i++) {
+    box(lobby, i*.93, .256, -.02, .011, .004, 5.07, "#cfc1a8");
+  }
+  box(lobby, -.28, .260, 1.77, 2.56, .028, 1.14, "#9caa92");
+  shadow(lobby, -1.52, .261, -.29, 1.61, .66, .29);
+  box(lobby, -1.55, .258, -.29, 2.51, .77, .79, materials.oak);
+  for (let i = 0; i < 15; i++) {
+    box(lobby, -2.69+i*.16, .268, .117, .065, .69, .037, "#d3a47a");
+  }
+  box(lobby, -1.55, 1.027, -.29, 2.65, .106, .90, "#eddfc1");
+  box(lobby, -1.89, 1.13, -.38, .43, .258, .053, materials.steel);
+  box(lobby, -1.89, 1.134, -.377, .23, .021, .17, materials.steel);
+  person(lobby, -1.33, .256, -.99, "#d6ad7d", 0, false, "#b97a5a");
+  person(lobby, -.19, .256, .99, "#697e73", PI, false, "#d3a079");
+  sofa(lobby, 2.65, .26, -1.10, 2.34, "#7c927b");
+  coffeeTable(lobby, 2.62, .26, -.14, .98);
+  mug(lobby, 2.72, .68, -.22);
+  plant(lobby, 3.81, .26, .94, 1.19);
+  plant(lobby, -3.70, .26, -1.71, 1.08, "#a88b70");
+
+  const z = 2.57;
+  box(lobby, -.30, .25, z, 3.28, .064, .087, "#707e71");
+  box(lobby, -.30, 1.887, z, 3.28, .062, .087, "#707e71");
+  for (const x of [-1.93, -1.05, .44, 1.33]) {
+    box(lobby, x, .25, z, .067, 1.69, .083, "#6b8073");
+  }
+  for (const x of [-1.49, .885]) {
+    quad(lobby, [x-.41,.32,z], [x+.41,.32,z], [x+.41,1.88,z], [x-.41,1.88,z], "#adc6b7", 0, .28);
+    box(lobby, x, .96, z+.034, .81, .024, .026, "#a9bcae");
+  }
+  for (const x of [-.68,.067]) {
+    box(lobby, x, .316, z-.008, .035, 1.51, .043, "#81958a");
+    box(lobby, x, 1.79, z-.008, .72, .035, .043, "#81958a");
+    quad(lobby, [x-.34,.332,z-.005], [x+.34,.332,z-.005], [x+.34,1.785,z-.005],
+      [x-.34,1.785,z-.005], "#b7d4c4", 0, .16);
+  }
+  for (const x of [-.40,-.21]) box(lobby, x, .94, z+.032, .032, .235, .067, "#d5c8a7");
+  sign(lobby, "STILLWELL", -.30, 1.94, z+.079);
+}
+
+function buildOffice() {
+  shell(office, 2.11, "#cdd5c4", "#d9d1b7");
+  [-3.04, -.99, 1.04, 3.07].forEach(x => windowBay(office, x, .79, 1.76, 1.12, "#96aea1"));
+  box(office, -3.21, .256, -2.19, 2.30, .39, .46, "#a29175");
+  box(office, -3.21, .646, -2.19, 2.36, .06, .49, "#d3b993");
+  for (const [row, z] of [-.86,.88].entries()) {
+    for (const [column, x] of [-2.82,-.58,1.70].entries()) {
+      table(office, x, .257, z, 1.58, .82, .66);
+      box(office, x-.22, .917, z-.185, .22, .03, .16, "#56695f");
+      box(office, x-.22, .944, z-.207, .041, .123, .044, "#52645a");
+      box(office, x-.22, 1.049, z-.218, .44, .263, .052, "#455950");
+      box(office, x-.22, 1.069, z-.19, .394, .222, .011, "#9bada2");
+      box(office, x-.23, .92, z+.072, .33, .024, .135, "#f0e4c9");
+      mug(office, x+.44, .92, z+.075, row ? "#729485" : "#e9d9b6");
+      const occupied = (row === 0 && column !== 1) || (row === 1 && column === 1);
+      chair(office, x-.13, .257, z+.63, "#6a7c71", -1);
+      if (occupied) person(office, x-.13, .257, z+.61, ["#b8735b","#d0a879","#758968"][column], PI, true,
+        column === 0 ? "#bc7c60" : "#d7a17e");
+    }
+  }
+  plant(office, 3.67, .258, 1.65, 1.27, "#9b795f");
+  plant(office, 3.78, .258, -1.62, .92);
+  box(office, 3.33, .256, -1.82, .88, .48, .62, "#a98b6b");
+}
+
+function buildMeeting() {
+  shell(meeting, 2.11, "#d4c6b2", "#d8c8ad");
+  windowBay(meeting, .63, .82, 1.34, 1.09, "#9cae9e");
+  windowBay(meeting, 2.98, .79, 2.39, 1.12, "#95ac9d");
+  box(meeting, -2.32, .80, -2.54, 2.45, 1.00, .098, "#4b5d54");
+  box(meeting, -2.32, .87, -2.483, 2.24, .858, .012, "#a4b7a6", .19);
+  box(meeting, -2.73, 1.20, -2.472, .94, .033, .009, "#ced4bb");
+  box(meeting, -2.9, 1.06, -2.472, .60, .028, .009, "#d4dbc3");
+  box(meeting, -1.89, 1.08, -2.472, .24, .30, .009, "#799787");
+  table(meeting, -1.98, .26, .16, 3.10, 1.14, .66);
+  for (const x of [-3.02,-1.99,-.96]) {
+    chair(meeting, x, .26, .979, "#7e9583", -1);
+    chair(meeting, x, .26, -.65, "#7e9583", 1);
+    box(meeting, x, .923, .28, .24, .016, .33, "#e9dfc4");
+  }
+  mug(meeting, -2.41, .924, -.045);
+  mug(meeting, -1.59, .924, -.17, "#798e7b");
+  rod(meeting, [-2.05,.925,.02], [-2.05,1.15,.02], .107, "#a18165", 9, .086);
+  ellipsoid(meeting, -2.05, 1.17, .026, .17, .095, .145, materials.leaf, 7, 4);
+  box(meeting, 2.57, .257, .26, 3.24, .026, 2.95, "#9ba78d");
+  sofa(meeting, 2.55, .283, -.72, 2.52, "#9eaa90");
+  sofa(meeting, 3.30, .283, 1.22, .87, "#c39071");
+  box(meeting, 1.68, .745, -.79, .275, .20, .145, "#d9b481");
+  coffeeTable(meeting, 2.37, .283, .24, 1.14);
+  box(meeting, 2.36, .771, .22, .25, .027, .19, "#7c9686");
+  plant(meeting, 3.87, .258, -1.79, 1.05);
+}
+
+function bistro(g, x, z, top = "#d5ab77", height = .87) {
+  shadow(g, x, .269, z, .50, .43, .23);
+  rod(g, [x,.26,z], [x,.315,z], .25, materials.steel, 10);
+  rod(g, [x,.31,z], [x,height-.058,z], .044, materials.steel, 7);
+  rod(g, [x,height-.058,z], [x,height,z], .414, top, 12);
+  mug(g, x-.11, height, z-.03);
+}
+
+function buildCafe() {
+  shell(cafe, 2.11, "#ded2b7", "#e0cba5");
+  windowBay(cafe, .61, .88, 1.77, 1.01, "#91a998");
+  windowBay(cafe, 3.03, .82, 2.03, 1.07, "#a7b8a2");
+  box(cafe, -2.84, 1.14, -2.547, 2.40, .66, .081, "#587465");
+  for (let i = 0; i < 4; i++) {
+    box(cafe, -3.41+(i%2)*1.15, 1.32+Math.floor(i/2)*.22, -2.50, .62-(i%2)*.12, .027, .01, "#ded2ad");
+  }
+  box(cafe, -2.50, .26, -1.45, 3.09, .68, .86, "#79917d");
+  for (let i = 0; i < 17; i++) {
+    box(cafe, -3.91+i*.176, .273, -1.008, .056, .61, .035, "#a2ad8a");
+  }
+  box(cafe, -2.50, .94, -1.45, 3.22, .095, .97, "#efdcb5");
+  box(cafe, -3.13, 1.035, -1.59, .72, .33, .40, "#677a71");
+  box(cafe, -3.13, 1.30, -1.59, .75, .085, .45, "#adb4a1");
+  for (const x of [-3.28,-3.03]) mug(cafe, x, 1.039, -1.31, "#ede3c7");
+  box(cafe, -1.72, 1.036, -1.44, .70, .084, .44, "#af9874");
+  box(cafe, -1.72, 1.120, -1.44, .67, .22, .41, "#b9d0c3", 0, .42);
+  for (const x of [-1.94,-1.72,-1.50]) {
+    ellipsoid(cafe, x, 1.15, -1.40, .085, .052, .079, "#bb8853", 7, 4);
+  }
+  person(cafe, -2.33, .256, -2.015, "#d4ac76", 0, false, "#a66c52", .96);
+
+  for (let i = 0; i < 13; i++) {
+    box(cafe, 2.91, .26, -2.30+i*.37, 3.04, .026, .348, i%3 === 0 ? "#b88760" : "#c89b6f");
+  }
+  rail(cafe, 4.46, -1.62, 4.46, 2.49, .285, .65);
+  rail(cafe, 1.63, 2.53, 4.46, 2.53, .285, .65);
+  bistro(cafe, -2.74, .85);
+  chair(cafe, -2.74, .258, 1.49, "#bb8b68", -1);
+  chair(cafe, -2.74, .258, .23, "#bb8b68", 1);
+  bistro(cafe, -.58, 1.12);
+  chair(cafe, -.58, .258, 1.74, "#78917e", -1);
+  bistro(cafe, 2.91, .59, "#e0bb8d");
+  chair(cafe, 2.91, .288, 1.19, "#996e59", -1);
+  chair(cafe, 2.91, .288, -.02, "#996e59", 1);
+  rod(cafe, [2.92,.29,.59], [2.92,1.92,.59], .025, "#856e53", 7);
+  for (let index = 0; index < 8; index++) {
+    const a = index*PI/4, b = (index+1)*PI/4;
+    const edge = angle => [2.92+.75*Math.cos(angle), 1.685, .59+.75*Math.sin(angle)];
+    triangle(cafe, [2.92,1.94,.59], edge(b), edge(a), index%2 ? "#bb8165" : "#e8cfaa");
+    triangle(cafe, [2.92,1.94,.59], edge(a), edge(b), index%2 ? "#bb8165" : "#e8cfaa");
+  }
+  planter(cafe, 3.61, .287, -1.65, 1.30, "#a67a5f");
+  plant(cafe, 4.09, .284, 2.09, .79);
+}
+
+function treadmill(x, z) {
+  shadow(gym, x, .268, z, .56, 1.10, .27);
+  box(gym, x, .279, z, .77, .133, 1.60, "#76837c");
+  box(gym, x, .412, z+.065, .59, .036, 1.40, "#46564f");
+  box(gym, x, .438, z+.71, .80, .059, .13, "#a3a899");
+  for (const side of [-1,1]) {
+    rod(gym, [x+side*.32,.41,z-.64], [x+side*.32,1.19,z-.69], .04, "#6e8276");
+    rod(gym, [x+side*.32,1.19,z-.69], [x+side*.32,1.15,z-.28], .038, "#455c51");
+  }
+  box(gym, x, 1.19, z-.674, .43, .22, .105, "#4c6458");
+  box(gym, x, 1.223, z-.617, .30, .128, .013, "#9fb2a1", .21);
+}
+
+function bike(x, z) {
+  shadow(gym, x, .268, z, .46, .82, .25);
+  box(gym, x, .275, z-.48, .60, .076, .14, "#718176");
+  box(gym, x, .275, z+.43, .60, .076, .14, "#718176");
+  rod(gym, [x-.092,.58,z-.20], [x+.092,.58,z-.20], .265, "#45574e", 12);
+  rod(gym, [x-.108,.58,z-.20], [x-.091,.58,z-.20], .20, "#99a193", 12);
+  rod(gym, [x+.091,.58,z-.20], [x+.108,.58,z-.20], .20, "#99a193", 12);
+  const lines = [
+    [[x,.30,z+.45],[x,.59,z+.12]], [[x,.58,z+.12],[x,1.025,z+.21]],
+    [[x,.58,z+.12],[x,.79,z-.38]], [[x,.79,z-.38],[x,1.17,z-.54]],
+    [[x-.24,1.16,z-.44],[x+.24,1.16,z-.44]]
+  ];
+  lines.forEach(([a,b]) => rod(gym, a, b, .038, "#658476"));
+  box(gym, x, 1.02, z+.282, .27, .076, .36, "#42534b");
+}
+
+function buildGym() {
+  shell(gym, 2.11, "#c8d1c1", "#a8b1a1");
+  windowBay(gym, 1.03, .79, 1.78, 1.09, "#a6b8a8");
+  windowBay(gym, 3.05, .79, 1.77, 1.09, "#a6b8a8");
+  box(gym, -2.38, .68, -2.548, 3.72, 1.24, .065, "#e6ddc4");
+  box(gym, -2.38, .735, -2.510, 3.62, 1.13, .016, "#a7b8ad");
+  for (const x of [-3.27,-2.38,-1.49]) box(gym, x, .736, -2.497, .025, 1.13, .015, "#d0d7bc");
+  treadmill(-3.09, -.17);
+  treadmill(-1.91, -.17);
+  bike(2.95,.36);
+  bike(3.85,.22);
+  box(gym, 2.60, .27, -1.80, 2.21, .145, .51, "#52665b");
+  box(gym, 2.60, .415, -1.80, 2.16, .36, .37, "#718276");
+  box(gym, 2.60, .775, -1.80, 2.22, .08, .46, "#566c5f");
+  for (let i = 0; i < 6; i++) {
+    const x = 1.71+i*.35;
+    rod(gym, [x-.14,.944,-1.78], [x+.14,.944,-1.78], .027, "#b3b6a1", 6);
+    rod(gym, [x-.142,.944,-1.78], [x-.091,.944,-1.78], .089, "#485c51", 6);
+    rod(gym, [x+.091,.944,-1.78], [x+.142,.944,-1.78], .089, "#485c51", 6);
+  }
+  box(gym, -.03, .259, 1.30, .70, .027, 1.67, "#c08b72");
+  box(gym, 1.10, .259, 1.30, .70, .027, 1.67, "#d2b695");
+  rod(gym, [-.286,.343,1.98], [.225,.343,1.98], .063, "#e4bf9d", 9);
+  person(gym, -.70, .26, -.30, "#cf9d75", -.5, false, "#b67d5d");
+  plant(gym, -3.87, .257, -1.92, .77, "#998267");
+}
+
+function buildRoof() {
+  box(roof, 0, 0, -.055, 9.42, .235, 5.54, materials.stone);
+  box(roof, 0, .051, 2.737, 9.46, .102, .068, materials.cut);
+  box(roof, 0, .23, -.06, 9.10, .035, 5.27, "#cfb28a");
+  for (let i = 0; i < 16; i++) {
+    box(roof, 0, .263, -2.47+i*.318, 8.88, .026, .303, i%4 === 0 ? "#be956c" : "#cda879");
+  }
+  box(roof, 0, .255, -2.677, 9.25, .48, .218, "#d4bc98");
+  box(roof, 0, .735, -2.677, 9.33, .075, .27, materials.cap);
+  box(roof, -4.557, .26, -.13, .23, .52, 5.24, "#d7bf9f");
+  box(roof, -4.557, .77, -.13, .275, .075, 5.32, materials.cap);
+  rail(roof, 4.55, -2.49, 4.55, 2.63, .289, .63);
+  rail(roof, -4.38, 2.61, 4.55, 2.61, .289, .63);
+
+  for (const x of [-3.99,-.22]) {
+    for (const z of [-2.28,-.03]) {
+      box(roof, x, .29, z, .15, 1.62, .15, "#876e52");
+    }
+    box(roof, x, 1.83, -1.155, .174, .143, 2.49, "#9d7b57");
+  }
+  for (let i = 0; i < 10; i++) {
+    box(roof, -4.10+i*.435, 1.966, -1.15, .09, .117, 2.63, "#b28b60");
+  }
+  box(roof, -2.10, 1.84, -2.28, 4.18, .13, .155, "#9d7b57");
+  box(roof, -2.10, 1.84, -.026, 4.18, .13, .16, "#9d7b57");
+  box(roof, -2.13, .291, -.41, 3.46, .025, 2.72, "#a2a88e");
+  sofa(roof, -2.25, .318, -1.63, 2.95, "#879e8d");
+  box(roof, -3.16, .753, -1.583, .31, .235, .15, "#d7b585");
+  box(roof, -1.36, .753, -1.599, .31, .235, .15, "#bf846c");
+  sofa(roof, -2.94, .315, .52, .92, "#bf8b72");
+  coffeeTable(roof, -1.70, .315, -.57, 1.22, "#e1c295");
+  mug(roof, -1.78, .835, -.69);
+  mug(roof, -1.52, .835, -.55, "#a06d59");
+  person(roof, -2.30, .318, -1.56, "#b87b63", 0, true, "#c9926d", .96);
+  person(roof, .65, .29, .85, "#d5ab76", .82, false, "#aa7054");
+  person(roof, 1.72, .29, 1.18, "#708a79", -1.98, false, "#d6a27d");
+
+  planter(roof, 2.42, .29, -1.99, 2.53, "#9b8067");
+  planter(roof, 3.18, .29, .24, 1.54, "#9c7a61");
+  planter(roof, -3.26, .29, 2.12, 1.63, "#a4876d");
+  plant(roof, 1.14, .29, -1.41, 1.56, "#af8266");
+  plant(roof, 3.91, .29, 1.68, 1.46, "#a58c70");
+  plant(roof, -.29, .29, 1.82, .75, "#b38b71");
+  for (const x of [-3.82,-.46]) {
+    box(roof, x, 1.745, -.08, .13, .095, .16, "#fae2a6", 1);
+  }
+}
+
+buildSite();
+buildLobby();
+buildOffice();
+buildMeeting();
+buildCafe();
+buildGym();
+buildRoof();
+
+for (const group of groups) {
+  group.solid = new Float32Array(group.solid);
+  group.clear = new Float32Array(group.clear);
+}
+
+const vertexSource = `
+  attribute vec3 aPosition;
+  attribute vec3 aColor;
+  attribute float aGlow;
+  attribute float aAlpha;
+  uniform vec3 uRight, uUp, uView, uShift;
+  uniform vec2 uScale, uCenter;
+  varying vec3 vColor;
+  varying float vGlow, vAlpha;
+  void main() {
+    vec3 p = aPosition + uShift;
+    gl_Position = vec4(
+      dot(p, uRight) * uScale.x + uCenter.x,
+      dot(p, uUp) * uScale.y + uCenter.y,
+      -dot(p, uView) / 36.0,
+      1.0
+    );
+    vColor = aColor;
+    vGlow = aGlow;
+    vAlpha = aAlpha;
+  }
+`;
+const fragmentSource = `
+  precision mediump float;
+  uniform float uNight, uFade, uPicking, uId;
+  uniform vec3 uHaze;
+  varying vec3 vColor;
+  varying float vGlow, vAlpha;
+  void main() {
+    if (uPicking > 0.5) {
+      gl_FragColor = vec4(uId, 0.0, 0.0, 1.0);
+      return;
+    }
+    vec3 color = mix(vColor, vColor * vec3(0.52, 0.59, 0.73), uNight);
+    color = mix(color, vec3(1.0, 0.76, 0.42), uNight * vGlow);
+    gl_FragColor = vec4(mix(color, uHaze, uFade), vAlpha);
+  }
+`;
+
+function webglRenderer(canvas) {
+  const gl = canvas.getContext("webgl", { alpha: true, antialias: true });
+  if (!gl) return null;
+
+  function shader(type, source) {
+    const result = gl.createShader(type);
+    gl.shaderSource(result, source);
+    gl.compileShader(result);
+    if (!gl.getShaderParameter(result, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(result));
+    return result;
+  }
+  const program = gl.createProgram();
+  gl.attachShader(program, shader(gl.VERTEX_SHADER, vertexSource));
+  gl.attachShader(program, shader(gl.FRAGMENT_SHADER, fragmentSource));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  gl.useProgram(program);
+
+  const attributes = [["aPosition",3,0], ["aColor",3,12], ["aGlow",1,24], ["aAlpha",1,28]]
+    .map(([name,count,offset]) => [gl.getAttribLocation(program, name),count,offset]);
+  const uniforms = Object.fromEntries(
+    ["Right","Up","View","Shift","Scale","Center","Night","Fade","Picking","Id","Haze"]
+      .map(name => [name, gl.getUniformLocation(program, "u"+name)])
+  );
+
+  function buffer(data) {
+    const handle = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, handle);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    return { handle, count: data.length / 8 };
+  }
+  const meshes = groups.map(group => ({ solid: buffer(group.solid), clear: buffer(group.clear) }));
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  gl.disable(gl.DITHER);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 0);
+  attributes.forEach(([location]) => gl.enableVertexAttribArray(location));
+
+  function render(state, picking = false) {
+    const { width, height, unit, x, y, right, up, view, night, haze } = state;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.uniform3fv(uniforms.Right, right);
+    gl.uniform3fv(uniforms.Up, up);
+    gl.uniform3fv(uniforms.View, view);
+    gl.uniform3fv(uniforms.Haze, haze);
+    gl.uniform2f(uniforms.Scale, 2*unit/width, 2*unit/height);
+    gl.uniform2f(uniforms.Center, 2*x/width-1, 1-2*y/height);
+    gl.uniform1f(uniforms.Picking, picking ? 1 : 0);
+    gl.uniform1f(uniforms.Night, night);
+
+    function draw(group, layer) {
+      const mesh = meshes[group.id][layer];
+      if (!mesh.count) return;
+      gl.uniform3fv(uniforms.Shift, group.shift);
+      gl.uniform1f(uniforms.Fade, group.fade);
+      gl.uniform1f(uniforms.Id, group.id / 255);
+      gl.bindBuffer(gl.ARRAY_BUFFER, mesh.handle);
+      for (const [location,count,offset] of attributes) {
+        gl.vertexAttribPointer(location, count, gl.FLOAT, false, 32, offset);
+      }
+      gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+    }
+
+    groups.forEach(group => draw(group, "solid"));
+    if (!picking) {
+      gl.enable(gl.BLEND);
+      gl.depthMask(false);
+      const ordered = groups.slice().sort((a,b) => V.dot(a.shift, view) - V.dot(b.shift, view));
+      ordered.forEach(group => draw(group, "clear"));
+      gl.depthMask(true);
+    }
+  }
+
+  function pick(state, x, y) {
+    const pixel = new Uint8Array(4);
+    const px = Math.floor(x * canvas.width / state.width);
+    const py = canvas.height - 1 - Math.floor(y * canvas.height / state.height);
+    if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) return 0;
+    render(state, true);
+    gl.readPixels(px, py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    render(state);
+    return pixel[0];
+  }
+
+  return { render, pick };
+}
+
+function canvasRenderer(canvas) {
+  const ctx = canvas.getContext("2d");
+  let painted = [];
+  function render(state) {
+    const { width, height, unit, x, y, right, up, view, haze, night } = state;
+    const projected = [];
+    for (const group of groups) {
+      for (const [data, transparent] of [[group.solid,false],[group.clear,true]]) {
+        for (let i = 0; i < data.length; i += 24) {
+          const points = [];
+          let depth = 0;
+          for (let j = i; j < i+24; j += 8) {
+            const pos = [data[j]+group.shift[0], data[j+1]+group.shift[1], data[j+2]+group.shift[2]];
+            points.push([x+V.dot(pos,right)*unit, y-V.dot(pos,up)*unit]);
+            depth += V.dot(pos,view);
+          }
+          const [a,b,c] = points;
+          if ((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]) >= -.001) continue;
+          const glow = data[i+6]*night;
+          const color = [0,1,2].map(j => {
+            const dim = data[i+3+j]*(1-night*[.48,.41,.27][j]);
+            const lit = dim*(1-glow)+[1,.76,.42][j]*glow;
+            return Math.round(255*(lit*(1-group.fade)+haze[j]*group.fade));
+          });
+          projected.push({ points, depth: depth/3, id: group.id, color,
+            transparent, opacity: (data[i+7]+data[i+15]+data[i+23])/3 });
+        }
+      }
+    }
+    projected.sort((a,b) => a.depth-b.depth);
+    ctx.setTransform(canvas.width/width,0,0,canvas.height/height,0,0);
+    ctx.clearRect(0,0,width,height);
+    for (const face of projected) {
+      const [a,b,c] = face.points;
+      ctx.beginPath();
+      ctx.moveTo(...a);
+      ctx.lineTo(...b);
+      ctx.lineTo(...c);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${face.color.join(",")},${face.opacity})`;
+      ctx.fill();
+    }
+    painted = projected;
+  }
+
+  function pick(state, x, y) {
+    for (let i = painted.length - 1; i >= 0; i--) {
+      const { points, id, transparent } = painted[i];
+      if (transparent) continue;
+      const inside = points.every((a,j) => {
+        const b = points[(j+1)%3];
+        return (b[0]-a[0])*(y-a[1])-(b[1]-a[1])*(x-a[0]) <= 0;
+      });
+      if (inside) return id;
+    }
+    return 0;
+  }
+  return { render, pick };
+}
+
+let canvas = document.getElementById("building");
+let renderer;
+try {
+  renderer = webglRenderer(canvas);
+} catch {
+  const replacement = canvas.cloneNode(true);
+  canvas.replaceWith(replacement);
+  canvas = replacement;
+}
+if (!renderer) renderer = canvasRenderer(canvas);
+
+const nav = document.getElementById("floor-nav");
+const nextButton = document.getElementById("next-floor");
+const allButton = document.getElementById("all-floors");
+const levelLabel = document.getElementById("room-level");
+const roomName = document.getElementById("room-name");
+const description = document.getElementById("room-description");
+const features = document.getElementById("room-features");
+const nextLabel = document.getElementById("next-label");
+const themeButtons = [...document.querySelectorAll("[data-theme]")];
+const compact = matchMedia("(max-width: 790px)");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+const initialAngle = PI/4;
+const elevation = Math.asin(1/Math.sqrt(3));
+let selected = 0;
+let yaw = initialAngle;
+let targetYaw = initialAngle;
+let light = 0;
+let targetLight = 0;
+let frameId = 0;
+let lastFrame = 0;
+let state;
+
+const floorButtons = [0,6,5,4,3,2,1].map(id => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = rooms[id].tag;
+  button.setAttribute("aria-label", id === 0 ? "전체 보기" : `${rooms[id].tag} ${rooms[id].name}`);
+  button.title = button.getAttribute("aria-label");
+  button.addEventListener("click", () => selectFloor(id));
+  nav.append(button);
+  if (id === 0) {
+    const divider = document.createElement("span");
+    divider.className = "floor-divider";
+    divider.setAttribute("aria-hidden", "true");
+    nav.append(divider);
+  }
+  return { id, button };
+});
+
+function selectFloor(id) {
+  if (!rooms[id]) return;
+  selected = id;
+  const room = rooms[id];
+  levelLabel.textContent = room.tag;
+  roomName.textContent = room.name;
+  description.textContent = room.description;
+  features.replaceChildren(...room.features.map(feature => {
+    const item = document.createElement("li");
+    item.textContent = feature;
+    return item;
+  }));
+  const next = id % 6 + 1;
+  nextLabel.textContent = `${rooms[next].tag} ${rooms[next].name} 둘러보기`;
+  nextButton.setAttribute("aria-label", id === 0 ? nextLabel.textContent : `다른 층 보기, ${nextLabel.textContent}`);
+  allButton.hidden = id === 0;
+  floorButtons.forEach(item => item.button.setAttribute("aria-pressed", String(item.id === id)));
+  invalidate();
+}
+
+function setTheme(dark) {
+  targetLight = dark ? 1 : 0;
+  document.body.classList.toggle("night", dark);
+  themeButtons.forEach(button => {
+    button.setAttribute("aria-pressed", String((button.dataset.theme === "night") === dark));
+  });
+  invalidate();
+}
+
+themeButtons.forEach(button => button.addEventListener("click", () => setTheme(button.dataset.theme === "night")));
+nextButton.addEventListener("click", () => selectFloor(selected % 6 + 1));
+allButton.addEventListener("click", () => {
+  selectFloor(0);
+  floorButtons[0].button.focus();
+});
+document.getElementById("reset-view").addEventListener("click", () => {
+  targetYaw = initialAngle;
+  invalidate();
+});
+
+const fitPoints = [];
+function fitRectangle(x1, x2, z1, z2, y) {
+  for (const x of [x1,x2]) for (const z of [z1,z2]) fitPoints.push([x,y,z]);
+}
+fitRectangle(-8.17,8.17,-4.99,6.63,-.52);
+fitRectangle(-4.71,4.68,-2.81,2.77,11.59);
+fitRectangle(-4.24,.0,-2.48,.17,12.84);
+
+function layout() {
+  const width = canvas.clientWidth, height = canvas.clientHeight;
+  if (!width || !height) return null;
+  const ratio = Math.min(devicePixelRatio || 1, 2);
+  const pixelsWide = Math.round(width*ratio);
+  const pixelsHigh = Math.round(height*ratio);
+  if (canvas.width !== pixelsWide) canvas.width = pixelsWide;
+  if (canvas.height !== pixelsHigh) canvas.height = pixelsHigh;
+
+  const s = Math.sin(yaw), c = Math.cos(yaw);
+  const se = Math.sin(elevation), ce = Math.cos(elevation);
+  const right = [c,0,-s], up = [-s*se,ce,-c*se], view = [s*ce,se,c*ce];
+  const px = fitPoints.map(point => V.dot(point,right));
+  const py = fitPoints.map(point => V.dot(point,up));
+  const minX = Math.min(...px), maxX = Math.max(...px);
+  const minY = Math.min(...py), maxY = Math.max(...py);
+  const left = compact.matches ? 12 : 84;
+  const farRight = compact.matches ? 12 : 19;
+  const top = compact.matches ? 14 : 20;
+  const bottom = compact.matches ? 43 : 53;
+  const unit = Math.min((width-left-farRight)/(maxX-minX), (height-top-bottom)/(maxY-minY));
+  return {
+    width, height, unit, right, up, view, night: light,
+    x: (width+left-farRight)/2-(minX+maxX)*unit/2,
+    y: (height+top-bottom)/2+(minY+maxY)*unit/2,
+    haze: [.88-.655*light, .905-.645*light, .846-.57*light]
+  };
+}
+
+function invalidate() {
+  if (!frameId) frameId = requestAnimationFrame(frame);
+}
+
+function frame(now) {
+  frameId = 0;
+  const step = reduceMotion.matches ? 1 : 1-Math.exp(-Math.min(lastFrame ? now-lastFrame : 17, 36)/64);
+  let moving = false;
+  function advance(value, target) {
+    if (Math.abs(target-value) < .0015) return target;
+    moving = true;
+    return value + (target-value)*step;
+  }
+  yaw = advance(yaw,targetYaw);
+  light = advance(light,targetLight);
+
+  const horizontal = [Math.sin(yaw),0,Math.cos(yaw)];
+  const sideways = [Math.cos(yaw),0,-Math.sin(yaw)];
+  for (const group of groups) {
+    const focused = selected !== 0 && group.id === selected;
+    const faded = selected === 0 || focused ? 0 : group.id === 0 ? .22 : .67;
+    group.focus = advance(group.focus, focused ? 1 : 0);
+    group.fade = advance(group.fade, faded);
+    group.shift = [
+      (1.62*sideways[0]+1.18*horizontal[0])*group.focus,
+      group.height+.30*group.focus-.10*group.fade,
+      (1.62*sideways[2]+1.18*horizontal[2])*group.focus
+    ];
+  }
+
+  state = layout();
+  if (state) renderer.render(state);
+  lastFrame = moving ? now : 0;
+  if (moving) invalidate();
+}
+
+function rotateBy(delta) {
+  targetYaw = Math.min(1.31, Math.max(-.48, targetYaw+delta));
+  invalidate();
+}
+
+let pointer = null;
+canvas.addEventListener("pointerdown", event => {
+  if (!event.isPrimary || event.button !== 0) return;
+  pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, moved: false };
+  canvas.setPointerCapture(event.pointerId);
+});
+canvas.addEventListener("pointermove", event => {
+  if (!pointer || event.pointerId !== pointer.id) return;
+  const dx = event.clientX-pointer.x, dy = event.clientY-pointer.y;
+  if (!pointer.moved && Math.abs(dx) < 5) return;
+  if (!pointer.moved && event.pointerType === "touch" && Math.abs(dy) > Math.abs(dx)) return;
+  pointer.moved = true;
+  canvas.classList.add("dragging");
+  rotateBy((event.clientX-pointer.lastX)*.007);
+  pointer.lastX = event.clientX;
+});
+canvas.addEventListener("pointerup", event => {
+  if (!pointer || event.pointerId !== pointer.id) return;
+  const tap = !pointer.moved && Math.hypot(event.clientX-pointer.x,event.clientY-pointer.y) < 7;
+  pointer = null;
+  canvas.classList.remove("dragging");
+  if (tap && state) {
+    const bounds = canvas.getBoundingClientRect();
+    const id = renderer.pick(state,event.clientX-bounds.left,event.clientY-bounds.top);
+    if (id) selectFloor(id);
+  }
+});
+function endPointer(event) {
+  if (pointer && event.pointerId === pointer.id) {
+    pointer = null;
+    canvas.classList.remove("dragging");
+  }
+}
+canvas.addEventListener("pointercancel", endPointer);
+canvas.addEventListener("lostpointercapture", endPointer);
+canvas.addEventListener("keydown", event => {
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    event.preventDefault();
+    rotateBy(event.key === "ArrowLeft" ? -.13 : .13);
+  } else if (event.key === "Home") {
+    event.preventDefault();
+    targetYaw = initialAngle;
+    invalidate();
+  }
+});
+nav.addEventListener("keydown", event => {
+  const shift = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[event.key];
+  const index = floorButtons.findIndex(item => item.button === event.target);
+  if (index < 0 || !shift) return;
+  event.preventDefault();
+  floorButtons[(index+shift+floorButtons.length)%floorButtons.length].button.focus();
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && selected !== 0) selectFloor(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(invalidate).observe(canvas);
+window.addEventListener("resize", invalidate);
+selectFloor(0);
+</script>
+</body>
+</html>

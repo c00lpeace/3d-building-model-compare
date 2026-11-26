@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>STILLWELL — Building Tour</title>
+<style>
+  :root{
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    --ink:#1d262c; --muted:#5f6b73; --card:rgba(255,255,255,.9); --line:rgba(29,38,44,.12);
+    --accent:#2f6f8f; --btn:#ffffff; --btnInk:#1d262c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased}
+  body{background:#dfe7ea}
+  .sky{position:fixed;inset:0;transition:opacity 1.2s ease}
+  #skyDay{background:linear-gradient(180deg,#eef3f5 0%,#d7e2e6 60%,#cbd8dc 100%)}
+  #skyNight{background:radial-gradient(1200px 600px at 70% -10%,#2a3866 0%,#121a33 45%,#090d1b 100%);opacity:0}
+  body.night #skyNight{opacity:1}
+  #stage{position:fixed;inset:0}
+  #stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  #stage canvas.dragging{cursor:grabbing}
+  #stage canvas.hover{cursor:pointer}
+
+  header.top{position:fixed;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;z-index:5}
+  header.top > *{pointer-events:auto}
+  .brand .logo{font-weight:800;letter-spacing:.32em;font-size:22px}
+  .brand .sub{font-size:12px;color:var(--muted);letter-spacing:.08em;margin-top:2px}
+  body.night .brand .logo{color:#f3f1ea}
+  body.night .brand .sub{color:#a9b3c7}
+
+  .dn{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:6px 14px 6px 6px;font:600 14px var(--font);color:var(--ink);cursor:pointer;box-shadow:0 6px 20px rgba(20,30,40,.08)}
+  .dn .track{width:44px;height:26px;border-radius:999px;background:#f2c46b;position:relative;transition:background .4s}
+  .dn .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .4s;display:grid;place-items:center;font-size:12px}
+  body.night .dn{background:rgba(22,30,52,.88);color:#eef0f6;border-color:rgba(255,255,255,.12)}
+  body.night .dn .track{background:#3f4f86}
+  body.night .dn .knob{transform:translateX(18px)}
+
+  .hint{position:fixed;top:28px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:999px;z-index:4;white-space:nowrap;pointer-events:none}
+  body.night .hint{background:rgba(22,30,52,.8);color:#b9c2d6;border-color:rgba(255,255,255,.1)}
+
+  #floors{position:fixed;right:24px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:5}
+  #floors button{display:flex;align-items:center;gap:10px;min-width:148px;border:1px solid var(--line);background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--ink);border-radius:12px;padding:9px 12px;font:500 13px var(--font);cursor:pointer;text-align:left;transition:background .2s,color .2s,transform .2s,border-color .2s}
+  #floors button b{font-weight:700;font-size:14px;min-width:24px}
+  #floors button:hover{transform:translateX(-3px)}
+  #floors button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  #floors button.all{justify-content:center;margin-top:6px;font-weight:600}
+  body.night #floors button{background:rgba(22,30,52,.85);color:#e8ebf3;border-color:rgba(255,255,255,.1)}
+  body.night #floors button.active{background:#f3d08a;color:#1a2033;border-color:#f3d08a}
+
+  #panel{position:fixed;left:24px;bottom:24px;width:340px;max-height:calc(100vh - 120px);overflow:auto;background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;padding:20px 20px 18px;z-index:5;box-shadow:0 14px 40px rgba(20,30,40,.12)}
+  #panel .inner{transition:opacity .25s ease, transform .25s ease}
+  #panel .inner.swap{opacity:0;transform:translateY(6px)}
+  #panel .tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--accent);text-transform:uppercase}
+  #panel .tag i{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+  #panel h2{margin:8px 0 6px;font-size:24px;font-weight:700;letter-spacing:-.01em}
+  #panel p{margin:0 0 12px;font-size:14px;line-height:1.6;color:var(--muted)}
+  #panel ul{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+  #panel li{display:flex;gap:10px;align-items:center;font-size:13.5px;padding:8px 10px;border-radius:10px;background:rgba(29,38,44,.05)}
+  #panel li span.n{font-size:11px;font-weight:700;color:var(--accent);min-width:18px}
+  #panel .other{border-top:1px solid var(--line);padding-top:12px}
+  #panel .other .lbl{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:8px}
+  #pChips{display:flex;flex-wrap:wrap;gap:6px}
+  #pChips button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;padding:5px 10px;font:600 12px var(--font);cursor:pointer}
+  #pChips button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .actions{display:flex;gap:6px;margin-top:12px}
+  .actions button{flex:1;border:1px solid var(--line);background:var(--btn);color:var(--btnInk);border-radius:10px;padding:9px 8px;font:600 13px var(--font);cursor:pointer}
+  .actions button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .actions button:disabled{opacity:.35;cursor:default}
+  .actions button[hidden]{display:none}
+  body.night #panel{background:rgba(20,27,48,.9);color:#eef0f6;border-color:rgba(255,255,255,.1)}
+  body.night #panel p{color:#aab4c8}
+  body.night #panel li{background:rgba(255,255,255,.06)}
+  body.night #panel .other{border-color:rgba(255,255,255,.1)}
+  body.night #panel .other .lbl{color:#aab4c8}
+  body.night #pChips button{border-color:rgba(255,255,255,.16)}
+  body.night #pChips button.active{background:#f3d08a;color:#1a2033;border-color:#f3d08a}
+  body.night .actions button{background:rgba(255,255,255,.06);color:#eef0f6;border-color:rgba(255,255,255,.14)}
+  body.night .actions button.primary{background:#f3d08a;color:#1a2033;border-color:#f3d08a}
+
+  #tip{position:fixed;pointer-events:none;z-index:6;background:var(--ink);color:#fff;font-size:12px;font-weight:600;padding:5px 9px;border-radius:8px;opacity:0;transform:translate(12px,12px);transition:opacity .15s;white-space:nowrap}
+  #err{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:30px;z-index:20;background:#eef2f4;font-size:15px;color:#333}
+
+  @media (max-width: 820px){
+    header.top{top:12px;left:14px;right:14px}
+    .brand .logo{font-size:18px}
+    .brand .sub{font-size:11px}
+    .hint{display:none}
+    #floors{top:62px;left:10px;right:10px;transform:none;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:2px;scrollbar-width:none}
+    #floors::-webkit-scrollbar{display:none}
+    #floors button{min-width:0;flex:0 0 auto;flex-direction:column;gap:0;padding:6px 10px;text-align:center;border-radius:10px}
+    #floors button span{font-size:10.5px;opacity:.8}
+    #floors button:hover{transform:none}
+    #floors button.all{margin-top:0;justify-content:center}
+    #panel{left:10px;right:10px;bottom:10px;width:auto;max-height:42vh;padding:14px 14px 12px;border-radius:16px}
+    #panel h2{font-size:19px;margin:4px 0}
+    #panel p{font-size:13px;margin-bottom:8px;line-height:1.5}
+    #panel ul{grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}
+    #panel li{font-size:11.5px;padding:6px 7px;flex-direction:column;align-items:flex-start;gap:2px}
+    #panel .other{padding-top:8px}
+    #panel .other .lbl{margin-bottom:6px}
+    #pChips button{padding:4px 8px;font-size:11.5px}
+    .actions{margin-top:8px}
+    .actions button{padding:8px 6px;font-size:12.5px}
+  }
+  @media (min-width: 821px) and (max-height: 600px){
+    #floors button{padding:5px 10px}
+    #panel{max-height:calc(100vh - 90px)}
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div class="sky" id="skyDay"></div>
+<div class="sky" id="skyNight"></div>
+<div id="stage"></div>
+
+<header class="top" id="header">
+  <div class="brand">
+    <div class="logo">STILLWELL</div>
+    <div class="sub">5 Floors + Rooftop · Building Tour</div>
+  </div>
+  <button class="dn" id="dn" aria-pressed="false" title="낮/밤 전환 (N)">
+    <span class="track"><span class="knob" id="knob">☀</span></span>
+    <span id="dnLabel">낮</span>
+  </button>
+</header>
+
+<div class="hint">드래그: 좌우 회전 · 휠: 확대 · 건물 층 클릭: 층 선택</div>
+
+<nav id="floors" aria-label="층 선택"></nav>
+
+<aside id="panel" aria-live="polite">
+  <div class="inner" id="pInner">
+    <div class="tag" id="pTag"><i></i><span>OVERVIEW</span></div>
+    <h2 id="pTitle">STILLWELL</h2>
+    <p id="pDesc"></p>
+    <ul id="pFeat"></ul>
+    <div class="other">
+      <span class="lbl">다른 층 보기</span>
+      <div id="pChips"></div>
+    </div>
+    <div class="actions">
+      <button id="btnPrev">↓ 아래층</button>
+      <button id="btnNext" class="primary">위층 ↑</button>
+      <button id="btnAll">전체 보기</button>
+    </div>
+  </div>
+</aside>
+
+<div id="tip"></div>
+<div id="err">3D 장면을 불러오지 못했습니다.<br>인터넷 연결(Three.js CDN)과 WebGL 지원 여부를 확인해 주세요.</div>
+
+<script>
+  // CDN 로드 실패 시 안내
+  setTimeout(function(){ if(!window.__stillwellReady){ document.getElementById('err').style.display='grid'; } }, 8000);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ------------------------------------------------------------------ */
+/*  데이터                                                              */
+/* ------------------------------------------------------------------ */
+const FLOORS = [
+  { id:'1F', name:'로비', en:'Lobby', color:'#2f6f8f',
+    desc:'STILLWELL의 첫인상. 높은 층고와 전면 유리 입구로 자연광이 깊숙이 들어오는 로비에서 방문객을 맞이합니다.',
+    feats:['리셉션 데스크 상시 운영','전면 유리 출입구','대기 라운지와 실내 정원'] },
+  { id:'2F', name:'사무 공간', en:'Workspace', color:'#4a6fa5',
+    desc:'집중을 위한 오픈 오피스. 좌석 사이를 넉넉히 띄우고, 조용한 포커스 부스를 함께 두었습니다.',
+    feats:['오픈 데스크 20석','1인 포커스 부스','화이트보드 협업 존'] },
+  { id:'3F', name:'회의·라운지', en:'Meeting & Lounge', color:'#7a5c9e',
+    desc:'유리 회의실과 편안한 라운지가 한 층에. 공식 회의부터 가벼운 대화까지 이곳에서 이루어집니다.',
+    feats:['8인 유리 회의실','화상회의 스크린','소파 라운지'] },
+  { id:'4F', name:'카페·테라스', en:'Café & Terrace', color:'#b0703c',
+    desc:'직접 내린 커피와 바깥 공기. 실내 카페에서 이어지는 테라스에서 잠시 쉬어 가세요.',
+    feats:['스페셜티 커피 바','야외 테라스 좌석','08:00 – 21:00 운영'] },
+  { id:'5F', name:'피트니스', en:'Fitness', color:'#3f8a68',
+    desc:'업무 전후로 몸을 깨우는 공간. 유산소·근력 기구와 스트레칭 존을 고루 갖췄습니다.',
+    feats:['러닝머신·실내 자전거','프리웨이트·케이블 존','요가·스트레칭 매트'] },
+  { id:'RF', name:'루프테라스', en:'Roof Terrace', color:'#b04f5a',
+    desc:'건물 꼭대기의 열린 정원. 도시 풍경을 바라보며 저녁 모임과 휴식을 즐길 수 있습니다.',
+    feats:['퍼골라 라운지','옥상 정원','저녁 스트링 조명'] },
+];
+const OVERVIEW = {
+  tag:'Overview', name:'STILLWELL', color:'#2f6f8f',
+  desc:'다섯 개 층과 루프탑으로 이루어진 작은 건물. 오른쪽 층 버튼이나 건물의 층을 직접 눌러 안을 둘러보세요.',
+  feats:['총 5개 층 + 루프탑','드래그로 좌우 회전','낮 / 밤 조명 전환'],
+};
+
+/* ------------------------------------------------------------------ */
+/*  기본 설정                                                           */
+/* ------------------------------------------------------------------ */
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
+const W = 16, D = 10, FH = 3.4, SLAB = 0.3, WALL = 0.25;
+const hw = W/2, hd = D/2, IH = FH - SLAB, FT = SLAB + 0.02;
+const PI = Math.PI;
+
+let seed = 20261126;
+function rand(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+const pick = a => a[Math.floor(rand()*a.length)];
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x000000, 0);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.getElementById('stage').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 400);
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0xa7b493, 1.25);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff0dc, 2.6);
+sun.position.set(-16, 34, 26);
+sun.target.position.set(0, 6, 0);
+scene.add(sun.target);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-36, right:36, top:36, bottom:-36, near:1, far:120 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun);
+
+/* ------------------------------------------------------------------ */
+/*  헬퍼                                                                */
+/* ------------------------------------------------------------------ */
+let MC = new Map();
+function mat(color, opts){
+  if (opts) return new THREE.MeshStandardMaterial(Object.assign({ color, roughness:.8, metalness:0 }, opts));
+  if (!MC.has(color)) MC.set(color, new THREE.MeshStandardMaterial({ color, roughness:.8, metalness:0 }));
+  return MC.get(color);
+}
+const M = m => (typeof m === 'string' ? mat(m) : m);
+function mesh(p, geo, m, x, y, z){
+  const me = new THREE.Mesh(geo, M(m));
+  me.position.set(x, y, z); me.castShadow = true; me.receiveShadow = true; p.add(me); return me;
+}
+const box = (p,w,h,d,m,x=0,y=0,z=0,ry=0) => { const me = mesh(p,new THREE.BoxGeometry(w,h,d),m,x,y,z); me.rotation.y = ry; return me; };
+const cyl = (p,rt,rb,h,m,x=0,y=0,z=0,seg=16) => mesh(p,new THREE.CylinderGeometry(rt,rb,h,seg),m,x,y,z);
+const sph = (p,r,m,x=0,y=0,z=0,seg=14) => mesh(p,new THREE.SphereGeometry(r,seg,Math.max(6,seg*0.7|0)),m,x,y,z);
+const ico = (p,r,m,x,y,z,det=1) => mesh(p,new THREE.IcosahedronGeometry(r,det),m,x,y,z);
+function grp(p,x=0,y=0,z=0,ry=0){ const g = new THREE.Group(); g.position.set(x,y,z); g.rotation.y = ry; p.add(g); return g; }
+
+// 밤 조명 등록: d=낮 세기, n=밤 세기
+const nightMats = [];
+function glow(color, emissive, d, n, opts={}){
+  const m = new THREE.MeshStandardMaterial(Object.assign({ color, emissive, emissiveIntensity:d, roughness:.5 }, opts));
+  nightMats.push({ m, d, n }); return m;
+}
+const winMat = () => glow('#a7bfcc', '#ffcf8a', 0, rand() < .18 ? .12 : 0.9 + rand()*0.9, { roughness:.12, metalness:.35 });
+const glassMat = (op=.22) => new THREE.MeshStandardMaterial({ color:'#bcd8e3', transparent:true, opacity:op, roughness:.05, metalness:.1, depthWrite:false });
+
+function textTexture(lines, o={}){
+  const w = o.w || 1024, h = o.h || 256;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.fillStyle = o.bg || '#1f2a30'; x.fillRect(0, 0, w, h);
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  lines.forEach((L, i) => {
+    x.font = `${L.weight || 700} ${L.size || 120}px ${FONT}`;
+    if ('letterSpacing' in x) x.letterSpacing = (L.ls || 0) + 'px';
+    x.fillStyle = L.color || o.fg || '#fff';
+    x.fillText(L.t, w/2 + (L.ls||0)/2, L.y != null ? L.y*h : h*(i + .5)/lines.length);
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+function textMat(tex, d=.08, n=1.1){
+  const m = new THREE.MeshStandardMaterial({ map:tex, emissive:'#ffffff', emissiveMap:tex, emissiveIntensity:d, roughness:.6 });
+  nightMats.push({ m, d, n }); return m;
+}
+function plane(p,w,h,m,x,y,z,ry=0){ const me = new THREE.Mesh(new THREE.PlaneGeometry(w,h), m); me.position.set(x,y,z); me.rotation.y = ry; p.add(me); return me; }
+
+/* ---- 사람 ---- */
+const SKIN = ['#f1c9a8','#d9a27c','#a8714f','#f6d7bd','#c48a63'];
+const HAIR = ['#2a211c','#4a3426','#1b1b1f','#7a5a3a','#c9a46a','#3b3b42'];
+const PANTS = ['#2d3440','#3f4a5a','#55483d','#26292e','#6b7280'];
+const SHIRTS = ['#e07a5f','#3d5a80','#81b29a','#f2cc8f','#98c1d9','#9c6644','#e5e5e5','#6d597a','#ee6c4d','#4f772d','#b56576','#457b9d'];
+const CAPS = new THREE.CapsuleGeometry(.2, .38, 4, 10);
+const ARM = new THREE.CapsuleGeometry(.065, .42, 3, 6);
+const HAIRG = new THREE.SphereGeometry(.172, 12, 8, 0, PI*2, 0, PI*.55);
+function person(p, x, z, o={}){
+  const g = grp(p, x, o.y || 0, z, o.ry || 0);
+  g.scale.setScalar(.88);
+  const shirt = o.shirt || pick(SHIRTS), pants = o.pants || pick(PANTS);
+  let top;
+  if (o.seated){
+    box(g,.36,.16,.52,pants,0,.58,.14);
+    box(g,.34,.52,.16,pants,0,.26,.38);
+    top = .66;
+  } else {
+    box(g,.15,.84,.2,pants,-.09,.42,0);
+    box(g,.15,.84,.2,pants,.09,.42,0);
+    top = .84;
+  }
+  mesh(g, CAPS, shirt, 0, top + .39, 0);
+  const a1 = mesh(g, ARM, shirt, -.26, top + .42, o.seated ? .08 : 0);
+  const a2 = mesh(g, ARM, shirt,  .26, top + .42, o.seated ? .08 : 0);
+  if (o.seated){ a1.rotation.x = -.5; a2.rotation.x = -.5; }
+  if (o.wave){ a2.rotation.z = 2.4; a2.position.y += .3; }
+  sph(g, .165, o.skin || pick(SKIN), 0, top + .95, 0, 14);
+  mesh(g, HAIRG, o.hair || pick(HAIR), 0, top + .97, -.01);
+  return g;
+}
+
+/* ---- 가구 ---- */
+function chair(p,x,z,ry,color='#3c4a55'){
+  const c = grp(p,x,0,z,ry);
+  box(c,.5,.08,.5,color,0,.46,0);
+  box(c,.5,.52,.07,color,0,.77,-.22);
+  cyl(c,.03,.03,.42,'#5b636b',0,.23,0,8);
+  cyl(c,.24,.24,.04,'#5b636b',0,.02,0,12);
+  return c;
+}
+function sofa(p,x,z,ry,color,len=2){
+  const s = grp(p,x,0,z,ry);
+  box(s,len,.42,.86,color,0,.21,0);
+  box(s,len-.2,.12,.68,new THREE.Color(color).offsetHSL(0,0,.06).getStyle(),0,.48,.06);
+  box(s,len,.6,.22,color,0,.66,-.32);
+  box(s,.18,.62,.86,color,-len/2+.09,.31,0);
+  box(s,.18,.62,.86,color, len/2-.09,.31,0);
+  return s;
+}
+function plant(p,x,z,s=1,pot='#e2dbd0'){
+  const g = grp(p,x,0,z); g.scale.setScalar(s);
+  cyl(g,.26,.2,.46,pot,0,.23,0,14);
+  const lm = mat(pick(['#5f8f4e','#4c7c43','#6e9e57']), { flatShading:true, roughness:.9 });
+  ico(g,.42,lm,0,.86,0); ico(g,.3,lm,.18,1.18,.05); ico(g,.26,lm,-.16,1.1,-.1);
+  return g;
+}
+function roundTable(p,x,z,top='#f0ebe3',r=.48){
+  cyl(p,r,r,.05,top,x,.76,z,20);
+  cyl(p,.05,.05,.72,'#3b4248',x,.38,z,8);
+  cyl(p,.28,.28,.04,'#3b4248',x,.02,z,14);
+}
+function tableSet(p,x,z,n,o={}){
+  roundTable(p,x,z,o.top);
+  for (let k=0;k<n;k++){
+    const a = (o.a0||0) + k*PI*2/n;
+    const cx = x + Math.cos(a)*.88, cz = z + Math.sin(a)*.88;
+    const ry = Math.atan2(-Math.cos(a), -Math.sin(a));
+    chair(p,cx,cz,ry,o.chair||'#c9a27a');
+    if (rand() < (o.fill ?? .6)) person(p,cx,cz,{ seated:true, ry });
+  }
+}
+function desk(p,x,z,ry,sit){
+  const d = grp(p,x,0,z,ry);
+  box(d,1.5,.05,.75,'#ece6da',0,.76,0);
+  for (const sx of [-.7,.7]) box(d,.05,.74,.7,'#7d868e',sx,.37,0);
+  box(d,.65,.4,.04,glow('#1c2530','#9fd3ff',.25,1.1),0,1.08,-.26);
+  box(d,.06,.22,.06,'#7d868e',0,.88,-.28);
+  box(d,.45,.02,.16,'#d9d9d9',0,.79,.05);
+  chair(d,0,.62,PI,'#33414c');
+  if (sit) person(d,0,.62,{ seated:true, ry:PI });
+}
+function tree(p,x,z,s=1){
+  const g = grp(p,x,0,z); g.scale.setScalar(s);
+  cyl(g,.13,.2,1.7,'#7a5a3e',0,.85,0,7);
+  const shade = pick(['#6f9a55','#5d8a4a','#7fa860','#8bb06a','#4f7d42']);
+  const lm = mat(shade, { flatShading:true, roughness:.9 });
+  if (rand() < .3){
+    mesh(g,new THREE.ConeGeometry(1.1,2.6,7),lm,0,2.8,0);
+  } else {
+    ico(g,1.05,lm,0,2.4,0); ico(g,.75,lm,.45,2.95,.2); ico(g,.7,lm,-.5,2.7,-.3);
+  }
+  return g;
+}
+
+/* ------------------------------------------------------------------ */
+/*  건물                                                                */
+/* ------------------------------------------------------------------ */
+const building = new THREE.Group();
+scene.add(building);
+const floorObjs = [];
+
+function shell(i, o){
+  MC = new Map(); // 층별 재질 분리(투명도 개별 제어용)
+  const g = grp(building, 0, i*FH, 0);
+  box(g, W, SLAB, D, o.slab || '#ebe7e0', 0, SLAB/2, 0);
+  box(g, W-WALL*2-.02, .02, D-WALL-.1, o.floor, 0, SLAB+.01, WALL/2-.05);
+  if (!o.noWalls){
+    const wm = mat(o.wall || '#f4f1ec');
+    box(g, W, IH, WALL, wm, 0, SLAB+IH/2, -hd+WALL/2);
+    box(g, WALL, IH, D-WALL, wm, -hw+WALL/2, SLAB+IH/2, WALL/2);
+    box(g, WALL, IH, D-WALL, wm,  hw-WALL/2, SLAB+IH/2, WALL/2);
+    const wh = IH*.58, wy = SLAB + IH*.52;
+    for (let k=0;k<5;k++){
+      if (o.skipBack && o.skipBack.includes(k)) continue;
+      box(g, 2.3, wh, WALL+.08, winMat(), -6.4 + k*3.2, wy, -hd+WALL/2);
+    }
+    for (const sx of [-1,1]) for (let k=0;k<3;k++)
+      box(g, WALL+.08, wh, 2.0, winMat(), sx*(hw-WALL/2), wy, -3 + k*3);
+    for (const sx of [-1,1]) box(g, .45, IH, .45, o.col || '#d8d2c8', sx*(hw-.225), SLAB+IH/2, hd-.225);
+    const lamp = glow('#ffffff', '#fff1d2', .15, 2.2);
+    for (const x of [-4.5, 0, 4.5]) box(g, 2.6, .05, .32, lamp, x, FH-.03, .6);
+  }
+  const L = new THREE.PointLight(0xffd9a6, 0, 15, 1.6);
+  L.position.set(0, o.noWalls ? 3 : FH-.8, .8);
+  g.add(L);
+  const f = grp(g, 0, FT, 0);
+  const obj = { g, f, light:L, lightMax: o.noWalls ? 14 : 22, op:1, opT:1, lift:0, liftT:0, mats:[], meshes:[] };
+  floorObjs.push(obj);
+  return obj;
+}
+
+/* ---- 1F 로비 ---- */
+{
+  const { g, f } = shell(0, { floor:'#d9d4cb', skipBack:[2] });
+  // 로고 월
+  box(g, 5.4, 2.7, .1, '#2b3a40', 0, SLAB+1.55, -hd+WALL+.06);
+  const logoTex = textTexture([{ t:'STILLWELL', size:150, ls:30 }], { bg:'#2b3a40' });
+  plane(g, 4.6, 1.15, textMat(logoTex, .12, 1.3), 0, SLAB+1.9, -hd+WALL+.12);
+  // 리셉션
+  box(f, 4, 1.05, .9, '#f2ede5', 0, .525, -2.2);
+  box(f, 4.2, .06, 1.05, '#b08a63', 0, 1.08, -2.2);
+  box(f, 4.02, .06, .02, glow('#ffe2b0', '#ffcf8a', .4, 2.2), 0, .25, -1.74);
+  person(f, -.9, -3.1, { shirt:'#2f6f8f' });
+  person(f,  .9, -3.1, { shirt:'#2f6f8f' });
+  box(f, .5, .3, .4, '#d9d9d9', .9, 1.26, -2.3);
+  // 유리 정면 + 입구
+  const gl = glassMat(.22), frame = mat('#3b4248');
+  box(g, 6.05, IH, .04, gl, -4.525, SLAB+IH/2, hd-.12);
+  box(g, 6.05, IH, .04, gl,  4.525, SLAB+IH/2, hd-.12);
+  for (const x of [-7.55,-5.5,-3.5,-1.5,1.5,3.5,5.5,7.55]) box(g, .07, IH, .09, frame, x, SLAB+IH/2, hd-.12);
+  box(g, W-.9, .12, .12, frame, 0, FH-.06, hd-.12);
+  box(g, 3.0, .7, .04, gl, 0, FH-.45, hd-.12);
+  const dg = glassMat(.3);
+  box(g, 1.38, 2.35, .05, dg, -.72, SLAB+1.18, hd+.05, .25);
+  box(g, 1.38, 2.35, .05, dg,  .72, SLAB+1.18, hd+.05, -.25);
+  box(g, .05, .6, .05, '#c9ced3', -.12, SLAB+1.1, hd+.25);
+  box(g, .05, .6, .05, '#c9ced3',  .12, SLAB+1.1, hd+.25);
+  // 캐노피 + 간판
+  box(g, 5.6, .14, 1.7, frame, 0, 2.62, hd+.85);
+  const signTex = textTexture([{ t:'STILLWELL', size:140, ls:34 }], { bg:'#1f2a30' });
+  box(g, 5.2, .62, .12, '#1f2a30', 0, 3.02, hd+1.6);
+  plane(g, 4.9, .55, textMat(signTex, .1, 1.6), 0, 3.02, hd+1.665);
+  box(g, 4.6, .03, .08, glow('#ffe2b0', '#ffcf8a', 0, 2.5), 0, 2.53, hd+1.6);
+  // 대기 라운지
+  box(f, 3.6, .015, 3.2, '#bba78c', -5.3, .008, .8);
+  sofa(f, -6.7, .8, PI/2, '#6b7f88', 2.4);
+  sofa(f, -5.2, 2.55, PI, '#c98f5c', 1.1);
+  sofa(f, -5.2, -.95, 0, '#c98f5c', 1.1);
+  box(f, 1.0, .38, 1.4, '#3b4248', -5.2, .19, .8);
+  person(f, -6.65, .4, { seated:true, ry:PI/2, y:.06 });
+  person(f, -5.2, -.9, { seated:true, ry:0, y:.06 });
+  // 플랜터 벤치
+  box(f, 3.2, .45, .7, '#b08a63', 5.0, .225, -.4);
+  for (const x of [3.9, 5.0, 6.1]) { const lm = mat('#5f8f4e',{flatShading:true}); ico(f,.4,lm,x,.75,-.4); }
+  person(f, 4.4, .45, { seated:true, ry:0, y:-.02 });
+  for (const [x,z] of [[-7.1,-4.1],[7.1,-4.1],[-2.9,-4.1],[2.9,-4.1],[7.1,4.0]]) plant(f,x,z,1.15);
+  // 방문객
+  person(f, 2.4, 2.4, { ry:PI*.75 });
+  person(f, 3.2, 1.8, { ry:-PI*.3 });
+  person(f, .2, 3.4, { ry:PI });
+  person(f, -1.4, 1.2, { ry:PI*1.2 });
+}
+
+/* ---- 2F 사무 공간 ---- */
+{
+  const { f } = shell(1, { floor:'#c9cdd2' });
+  const clusters = [[-5.6,-2.4],[-2.2,-2.4],[1.2,-2.4],[-5.6,1.7],[-2.2,1.7]];
+  for (const [cx,cz] of clusters){
+    desk(f, cx-.77, cz+.42, 0, rand()<.75);
+    desk(f, cx+.77, cz+.42, 0, rand()<.75);
+    desk(f, cx-.77, cz-.42, PI, rand()<.75);
+    desk(f, cx+.77, cz-.42, PI, rand()<.75);
+  }
+  // 포커스 부스
+  for (const x of [4.3, 6.2]){
+    box(f, 1.5, 2.3, .1, '#6d8b7d', x, 1.15, -4.55);
+    box(f, .1, 2.3, 1.4, '#6d8b7d', x-.7, 1.15, -3.85);
+    box(f, .1, 2.3, 1.4, '#6d8b7d', x+.7, 1.15, -3.85);
+    box(f, 1.5, .1, 1.5, '#5a7769', x, 2.35, -3.8);
+    box(f, 1.3, 2.2, .04, glassMat(.25), x, 1.12, -3.12);
+    box(f, .8, .04, .4, '#ece6da', x, .74, -4.25);
+    person(f, x, -3.75, { seated:true, ry:PI });
+  }
+  // 크레덴자
+  box(f, .45, .62, 3.6, '#d6cbb8', hw-WALL-.3, .31, -.4);
+  plant(f, hw-WALL-.3, -1.6, .7); plant(f, hw-WALL-.3, .8, .7);
+  // 화이트보드 협업
+  const wb = grp(f, 5.0, 0, 2.0);
+  box(wb, 2.0, 1.2, .05, '#fbfbfb', 0, 1.45, 0);
+  box(wb, 2.1, .06, .1, '#9aa3ab', 0, .84, .02);
+  for (const sx of [-.95,.95]) box(wb, .05, 1.9, .05, '#9aa3ab', sx, .95, 0);
+  box(wb, .6, .08, .02, '#e07a5f', -.4, 1.6, .035); box(wb, .5, .08, .02, '#3d5a80', .3, 1.3, .035);
+  person(f, 4.3, 3.2, { ry:PI*.92 });
+  person(f, 5.5, 3.3, { ry:PI*1.05, wave:true });
+  person(f, 6.4, 2.9, { ry:PI*1.2 });
+  plant(f, -7.1, 4.2, 1.1); plant(f, 2.9, 4.2, 1);
+}
+
+/* ---- 3F 회의·라운지 ---- */
+{
+  const { f } = shell(2, { floor:'#dacfbf' });
+  // 유리 회의실
+  const gl = glassMat(.2), fr = mat('#3b4248');
+  box(f, 6.4, IH-.04, .04, gl, -4.4, (IH-.04)/2, 1.2);
+  box(f, .04, IH-.04, 5.9, gl, -1.2, (IH-.04)/2, -1.75);
+  box(f, 6.4, .06, .08, fr, -4.4, IH-.05, 1.2);
+  box(f, .08, .06, 5.9, fr, -1.2, IH-.05, -1.75);
+  box(f, .06, IH-.04, .06, fr, -1.2, (IH-.04)/2, 1.2);
+  box(f, 3.8, .08, 1.4, '#6b4f3a', -4.4, .76, -1.8);
+  box(f, .1, .72, 1.0, '#3b4248', -5.6, .36, -1.8); box(f, .1, .72, 1.0, '#3b4248', -3.2, .36, -1.8);
+  for (const x of [-5.6,-4.4,-3.2]){
+    chair(f, x, -2.95, 0, '#e8e3da'); chair(f, x, -.65, PI, '#e8e3da');
+    if (rand()<.7) person(f, x, -2.95, { seated:true, ry:0 });
+    if (rand()<.7) person(f, x, -.65, { seated:true, ry:PI });
+  }
+  chair(f, -6.75, -1.8, PI/2, '#e8e3da'); person(f, -6.75, -1.8, { seated:true, ry:PI/2 });
+  chair(f, -2.05, -1.8, -PI/2, '#e8e3da');
+  box(f, 2.5, 1.45, .1, '#1b1f24', -4.4, 1.75, -4.5);
+  box(f, 2.3, 1.28, .02, glow('#22324a', '#7fb3ff', .5, 1.3), -4.4, 1.75, -4.44);
+  // 라운지
+  box(f, 5.2, .015, 4.0, '#9fb3aa', 3.9, .008, 1.3);
+  sofa(f, 3.9, -.7, 0, '#4f6d7a', 2.8);
+  sofa(f, 1.25, 1.4, PI/2, '#4f6d7a', 2.0);
+  sofa(f, 6.5, 1.6, -PI/2, '#e0b67a', 1.2);
+  cyl(f, .7, .7, .06, '#3b4248', 3.9, .42, 1.3, 24); cyl(f, .5, .5, .4, '#c9b79c', 3.9, .2, 1.3, 20);
+  person(f, 3.3, -.65, { seated:true, ry:0, y:.06 });
+  person(f, 4.4, -.65, { seated:true, ry:0, y:.06 });
+  person(f, 1.3, 1.0, { seated:true, ry:PI/2, y:.06 });
+  person(f, 6.45, 1.6, { seated:true, ry:-PI/2, y:.06 });
+  // 책장
+  box(f, 3.2, 2.0, .4, '#c9b79c', 5.4, 1.0, -4.45);
+  for (let r=0;r<3;r++) for (let k=0;k<9;k++){
+    if (rand()<.25) continue;
+    box(f, .18, .42, .26, pick(['#e07a5f','#3d5a80','#81b29a','#f2cc8f','#6d597a']), 4.05+k*.34, .38+r*.62, -4.36);
+  }
+  // 플로어 램프
+  cyl(f, .03, .03, 1.6, '#3b4248', 7.1, .8, -1.2, 8);
+  cyl(f, .22, .3, .3, glow('#f4ead6', '#ffd28a', .1, 2), 7.1, 1.7, -1.2, 14);
+  plant(f, -.5, 4.1, 1.1); plant(f, 7.1, 4.2, 1.1);
+}
+
+/* ---- 4F 카페·테라스 ---- */
+{
+  const { g, f } = shell(3, { floor:'#e3d6c2' });
+  // 테라스 확장
+  box(g, W, SLAB, 3.2, '#ebe7e0', 0, SLAB/2, hd+1.6);
+  for (let k=0;k<11;k++) box(g, W-.3, .03, .25, k%2 ? '#b58c63' : '#a9805a', 0, SLAB+.015, hd+.22+k*.27);
+  const gl = glassMat(.25), rail = mat('#3b4248');
+  box(g, W, 1.0, .05, gl, 0, FT+.5, hd+3.15);
+  box(g, W, .06, .09, rail, 0, FT+1.0, hd+3.15);
+  for (const sx of [-1,1]){
+    box(g, .05, 1.0, 3.2, gl, sx*(hw-.03), FT+.5, hd+1.6);
+    box(g, .09, .06, 3.2, rail, sx*(hw-.03), FT+1.0, hd+1.6);
+  }
+  // 카운터
+  box(f, 4.5, 1.0, .8, '#2f3b40', -4.6, .5, -3.3);
+  box(f, 4.7, .06, .95, '#d8cbb6', -4.6, 1.03, -3.3);
+  box(f, .8, .5, .45, mat('#c0c6cc',{ metalness:.6, roughness:.3 }), -5.8, 1.31, -3.4);
+  for (const x of [-4.6,-4.3,-4.0]) cyl(f, .06, .05, .12, '#ffffff', x, 1.12, -3.1, 10);
+  box(f, .7, .4, .4, '#e8e2d6', -3.0, 1.26, -3.4);
+  person(f, -4.4, -4.25, { shirt:'#3b2f2a' });
+  person(f, -6.0, -4.25, { shirt:'#3b2f2a' });
+  const menu = textTexture([
+    { t:'CAFE STILLWELL', size:52, ls:8, y:.16 },
+    { t:'Espresso   4.0', size:40, weight:500, y:.42, color:'#e9dfc9' },
+    { t:'Latte   5.0', size:40, weight:500, y:.62, color:'#e9dfc9' },
+    { t:'Hand Drip   6.0', size:40, weight:500, y:.82, color:'#e9dfc9' },
+  ], { w:512, h:320, bg:'#23382f' });
+  plane(f, 2.4, 1.5, textMat(menu, .15, 1.0), -4.6, 1.9, -4.56);
+  for (const x of [-5.9,-4.6,-3.3]){
+    cyl(f, .01, .01, .7, '#3b4248', x, IH-.36, -3.3, 4);
+    cyl(f, .12, .2, .2, glow('#f4ead6', '#ffcf8a', .2, 2.4), x, IH-.78, -3.3, 12);
+  }
+  // 실내 테이블
+  tableSet(f, -1.5, -.5, 3, { a0:.3 });
+  tableSet(f, 1.8, -2.5, 2, { a0:0 });
+  tableSet(f, 4.7, -1.0, 3, { a0:1 });
+  tableSet(f, 1.4, 1.9, 2, { a0:PI/2 });
+  tableSet(f, -4.5, 1.6, 3, { a0:.8 });
+  tableSet(f, 5.2, 2.8, 2, { a0:0 });
+  plant(f, 7.1, -4.2, 1.1); plant(f, -7.1, 4.1, 1.0);
+  person(f, -2.6, -2.2, { ry:PI });
+  // 테라스 좌석 + 파라솔
+  for (const [x,c] of [[-5.6,'#cf6f4f'],[-1.9,'#e7d3b0'],[1.9,'#cf6f4f'],[5.6,'#e7d3b0']]){
+    tableSet(f, x, 6.6, 2, { a0:0, chair:'#8b9aa3', fill:.7 });
+    cyl(f, .03, .03, 2.2, '#3b4248', x, 1.1, 6.6, 6);
+    mesh(f, new THREE.ConeGeometry(1.25, .5, 10), c, x, 2.35, 6.6);
+  }
+  for (const [x,z] of [[-7.3,7.8],[7.3,7.8]]) plant(f, x, z, .9, '#8d8378');
+}
+
+/* ---- 5F 피트니스 ---- */
+{
+  const { f } = shell(4, { floor:'#8b9299' });
+  const dark = '#2c3136';
+  for (const x of [-6.4,-4.9,-3.4,-1.9]){
+    const t = grp(f, x, 0, -3.1, 0);
+    box(t, .85, .18, 1.9, dark, 0, .09, 0);
+    box(t, .64, .02, 1.7, '#15181b', 0, .19, .06);
+    for (const sx of [-.38,.38]){ box(t, .06, 1.1, .06, '#9aa3ab', sx, .7, -.85); box(t, .04, .04, .6, '#9aa3ab', sx, 1.05, -.56); }
+    const con = box(t, .85, .32, .12, glow('#1c2530', '#7fffd0', .4, 1.4), 0, 1.3, -.86);
+    con.rotation.x = -.4;
+    if (rand() < .8) person(t, 0, .15, { ry:PI, y:.2 });
+  }
+  // 실내 자전거
+  for (const x of [.2, 1.5]){
+    const b = grp(f, x, 0, -3.3, 0);
+    box(b, .4, .08, 1.0, dark, 0, .04, 0);
+    const fw = cyl(b, .22, .22, .08, '#9aa3ab', 0, .3, -.32, 16); fw.rotation.z = PI/2;
+    box(b, .07, .8, .07, dark, 0, .5, .25);
+    box(b, .26, .06, .32, '#b8423a', 0, .92, .27);
+    box(b, .06, .85, .06, dark, 0, .6, -.36);
+    box(b, .45, .05, .06, '#9aa3ab', 0, 1.05, -.36);
+  }
+  // 덤벨 랙
+  box(f, 3.2, .06, .6, dark, 4.8, .62, -4.3);
+  box(f, 3.2, .06, .6, dark, 4.8, .32, -4.3);
+  for (const x of [3.3,6.3]) box(f, .06, .66, .6, dark, x, .33, -4.3);
+  for (let k=0;k<6;k++) for (const y of [.71,.41]){
+    const x = 3.6 + k*.48;
+    const h = cyl(f, .025, .025, .34, '#9aa3ab', x, y, -4.3, 8); h.rotation.x = PI/2;
+    for (const s of [-1,1]){ const d = cyl(f, .085, .085, .07, '#24282d', x, y, -4.3 + s*.15, 12); d.rotation.x = PI/2; }
+  }
+  box(f, 2.8, 1.8, .05, mat('#dfe8ee',{ metalness:.8, roughness:.08 }), 4.8, 1.75, -4.55);
+  // 벤치프레스
+  box(f, .42, .42, 1.3, dark, 4.6, .21, -.9);
+  box(f, .44, .08, 1.3, '#b8423a', 4.6, .46, -.9);
+  for (const sx of [-.45,.45]) box(f, .08, 1.3, .08, '#9aa3ab', 4.6+sx, .65, -1.45);
+  const bar = cyl(f, .03, .03, 2.1, '#c8cdd2', 4.6, 1.18, -1.45, 8); bar.rotation.z = PI/2;
+  for (const sx of [-.85,.85]){ const pl = cyl(f, .26, .26, .08, '#24282d', 4.6+sx, 1.18, -1.45, 18); pl.rotation.z = PI/2; }
+  // 케이블 머신
+  box(f, .12, 2.4, .12, dark, 7.0, 1.2, 1.0); box(f, .12, 2.4, .12, dark, 7.0, 1.2, 3.0);
+  box(f, .12, .12, 2.12, dark, 7.0, 2.36, 2.0);
+  box(f, .4, 1.1, .55, '#3a3f45', 7.2, .55, 2.0);
+  box(f, .02, 1.6, .02, '#c8cdd2', 6.85, 1.5, 1.6);
+  person(f, 6.3, 1.6, { ry:-PI/2, shirt:'#ee6c4d' });
+  // 요가 매트
+  for (const [x,c] of [[-6.0,'#81b29a'],[-4.8,'#e07a5f'],[-3.6,'#98c1d9']]) box(f, .75, .025, 1.9, c, x, .013, 2.6);
+  person(f, -6.0, 2.4, { seated:true, ry:0, y:-.45 });
+  person(f, -4.8, 2.6, { ry:0, wave:true });
+  person(f, -3.6, 2.8, { ry:PI*.1 });
+  // 케틀벨 & 짐볼
+  for (let k=0;k<5;k++) sph(f, .13+k*.015, '#24282d', -.2+k*.45, .15, 1.6, 12);
+  sph(f, .34, '#5a8fbf', -1.0, .34, 3.6, 18);
+  sph(f, .34, '#9c6644', -.2, .34, 3.9, 18);
+  person(f, 1.6, 2.8, { ry:PI*.8, shirt:'#1d262c' });
+  plant(f, 7.1, 4.2, 1.0); plant(f, -7.1, -.3, .9);
+}
+
+/* ---- RF 루프테라스 ---- */
+{
+  const { g, f } = shell(5, { floor:'#b8916a', noWalls:true });
+  for (let k=0;k<18;k++) box(g, .03, .005, D-.6, '#a37e5a', -7.2 + k*.85, FT+.002, 0);
+  // 파라펫 + 유리 난간
+  const pm = mat('#e2ddd5'), gl = glassMat(.22), rail = mat('#3b4248');
+  for (const sz of [-1,1]){
+    box(g, W, .45, .25, pm, 0, SLAB+.225, sz*(hd-.125));
+    box(g, W, .7, .04, gl, 0, SLAB+.8, sz*(hd-.125));
+    box(g, W, .05, .08, rail, 0, SLAB+1.15, sz*(hd-.125));
+  }
+  for (const sx of [-1,1]){
+    box(g, .25, .45, D-.5, pm, sx*(hw-.125), SLAB+.225, 0);
+    box(g, .04, .7, D-.5, gl, sx*(hw-.125), SLAB+.8, 0);
+    box(g, .08, .05, D-.5, rail, sx*(hw-.125), SLAB+1.15, 0);
+  }
+  // 계단실
+  box(f, 3.2, 2.5, 2.6, '#e8e3dc', 5.6, 1.25, -3.4);
+  box(f, 3.4, .15, 2.8, '#3b4248', 5.6, 2.57, -3.4);
+  box(f, .9, 1.95, .05, '#3b4248', 4.7, .98, -2.08);
+  box(f, 1.2, .5, .05, glow('#a7bfcc', '#ffcf8a', 0, 1.6), 6.4, 1.7, -2.08);
+  // 퍼골라
+  const wood = '#5b4636';
+  for (const x of [-7.2,-1.8]) for (const z of [-4.2,.6]) box(f, .16, 2.7, .16, wood, x, 1.35, z);
+  for (const z of [-4.2,.6]) box(f, 5.6, .14, .16, wood, -4.5, 2.72, z);
+  for (let k=0;k<11;k++) box(f, .08, .1, 5.1, wood, -7.0 + k*.5, 2.84, -1.8);
+  const bulb = glow('#fff6e0', '#ffcf7a', .2, 3.2);
+  for (const z of [.6,-1.8,-4.2]) for (let k=0;k<12;k++) sph(f, .065, bulb, -7.0 + k*.46, 2.5 - Math.sin(k/11*PI)*.18, z, 8);
+  sofa(f, -4.5, -3.5, 0, '#e8e0d2', 3.0);
+  sofa(f, -6.6, -1.5, PI/2, '#e8e0d2', 2.0);
+  box(f, 1.6, .36, .9, '#8d8378', -4.4, .18, -2.1);
+  cyl(f, .08, .08, .14, '#cf6f4f', -4.7, .43, -2.1, 10);
+  person(f, -5.3, -3.45, { seated:true, ry:0, y:.06 });
+  person(f, -4.1, -3.45, { seated:true, ry:0, y:.06 });
+  person(f, -6.55, -1.2, { seated:true, ry:PI/2, y:.06 });
+  person(f, -2.9, -1.4, { ry:-PI/2, wave:true });
+  // 하이 테이블 모임
+  cyl(f, .45, .45, .05, '#f0ebe3', .6, 1.05, .8, 18); cyl(f, .05, .05, 1.03, '#3b4248', .6, .52, .8, 8);
+  person(f, .0, 1.3, { ry:PI*.75 }); person(f, 1.3, 1.2, { ry:-PI*.7 }); person(f, .7, .0, { ry:0 });
+  // 선베드 + 파라솔
+  for (const x of [3.3, 4.9]){
+    const l = grp(f, x, 0, .9, 0);
+    box(l, .7, .3, 1.8, '#f1ece3', 0, .15, 0);
+    const bk = box(l, .7, .08, .8, '#f1ece3', 0, .55, -.65); bk.rotation.x = .7;
+  }
+  person(f, 4.9, 1.0, { seated:true, ry:0, y:-.14 });
+  cyl(f, .03, .03, 2.3, '#3b4248', 4.1, 1.15, -.5, 6);
+  mesh(f, new THREE.ConeGeometry(1.4, .5, 10), '#e7d3b0', 4.1, 2.4, -.5);
+  // 정원
+  for (const [x,z,w] of [[-4.5,3.9,4.2],[4.0,3.9,4.6]]){
+    box(f, w, .5, .8, '#8d8378', x, .25, z);
+    for (let k=0;k<Math.round(w/.7);k++){
+      const lm = mat(pick(['#5f8f4e','#4c7c43','#6e9e57','#7fa860']), { flatShading:true, roughness:.9 });
+      ico(f, .3+rand()*.15, lm, x - w/2 + .35 + k*.7, .7+rand()*.1, z + (rand()-.5)*.2);
+    }
+  }
+  for (const [x,z] of [[-7.1,4.1],[7.1,4.1],[7.1,-.6],[-.4,-4.2]]){
+    const t = tree(f, x, z, .5);
+    cyl(t, .5, .4, .7, '#8d8378', 0, .35, 0, 14);
+  }
+}
+
+// 층 메타데이터 수집
+floorObjs.forEach((o, i) => {
+  const set = new Set();
+  o.g.traverse(n => {
+    if (n.isMesh){
+      n.userData.floor = i; n.userData.cast = n.castShadow;
+      o.meshes.push(n);
+      (Array.isArray(n.material) ? n.material : [n.material]).forEach(m => set.add(m));
+    }
+  });
+  set.forEach(m => { m.userData.base = m.opacity; m.userData.dw = m.depthWrite; m.transparent = true; });
+  o.mats = [...set];
+});
+const pickables = floorObjs.flatMap(o => o.meshes);
+
+/* ------------------------------------------------------------------ */
+/*  주변 환경                                                           */
+/* ------------------------------------------------------------------ */
+MC = new Map();
+const env = new THREE.Group(); scene.add(env);
+{
+  const side = mat('#8a7560'), grass = mat('#a9c48c');
+  const tile = new THREE.Mesh(new THREE.BoxGeometry(68, 1.6, 56), [side, side, grass, side, side, side]);
+  tile.position.set(0, -.8, 2); tile.receiveShadow = true; env.add(tile);
+  box(env, 33, .1, 25, '#e3ded5', 0, .05, 1).castShadow = false;
+  // 도로
+  box(env, 68, .06, 6, '#4b5057', 0, .03, 16.5).castShadow = false;
+  box(env, 6, .07, 56, '#4b5057', -21, .035, 2).castShadow = false;
+  box(env, 68, .12, .3, '#cfc9bf', 0, .06, 13.35); box(env, 68, .12, .3, '#cfc9bf', 0, .06, 19.65);
+  const lane = mat('#f4f1e6');
+  for (let x=-32; x<=32; x+=3.5) if (Math.abs(x+21) > 4) box(env, 1.6, .01, .14, lane, x, .066, 16.5).castShadow = false;
+  for (let z=-24; z<=28; z+=3.5) if (Math.abs(z-16.5) > 4) box(env, .14, .01, 1.6, lane, -21, .076, z).castShadow = false;
+  for (let k=0;k<7;k++) box(env, .5, .01, 5.0, lane, -2.7 + k*.9, .066, 16.5).castShadow = false;
+  // 주차장
+  box(env, 9.5, .06, 14, '#9aa0a6', 23.2, .03, 0).castShadow = false;
+  for (let k=0;k<6;k++){ box(env, 2.4, .01, .1, lane, 20.4, .065, -6 + k*2.4).castShadow=false; box(env, 2.4, .01, .1, lane, 26.0, .065, -6 + k*2.4).castShadow=false; }
+  // 플라자 디테일
+  for (const x of [-11, 11]) { box(env, 2.2, .45, .6, '#b08a63', x, .32, 9.5); }
+  for (const [x,z] of [[-14,-9],[-14,-4],[-14,1],[-14,6],[14,-9],[14,-4],[14,6],[-9,-10],[-3,-10],[3,-10],[9,-10],[-9,11.5],[9,11.5]]) tree(env, x, z, .9 + rand()*.25);
+  // 공원 나무
+  const avoid = (x,z) => (x>-17.5 && x<17.5 && z>-12.5 && z<21) || (x>-25 && x<-17 ) || (z>12.5 && z<21) || (x>17.5 && x<28.5 && z>-8 && z<8);
+  let n = 0, tries = 0;
+  while (n < 46 && tries < 600){
+    tries++;
+    const x = -32 + rand()*64, z = -24 + rand()*52;
+    if (avoid(x,z)) continue;
+    tree(env, x, z, .8 + rand()*.6); n++;
+  }
+  // 플라자 사람
+  person(env, -6, 10.2, { ry:.4 }); person(env, -5.3, 10.6, { ry:PI+.5 });
+  person(env, 8.5, 8.6, { ry:-.8 }); person(env, -11, 9.5, { seated:true, ry:0, y:.1 });
+}
+
+// 가로등
+const lampHead = glow('#f4f4f0', '#ffd79a', .1, 3);
+const lampGlows = [];
+for (const [x,z,ry] of [[-13,13,0],[-5,13,0],[5,13,0],[13,13,0],[-17.3,-8,-PI/2],[-17.3,4,-PI/2],[-24.7,-2,PI/2],[-24.7,24,PI/2]]){
+  const l = grp(env, x, 0, z, ry);
+  cyl(l, .06, .08, 4, '#3b4248', 0, 2, 0, 8);
+  box(l, .08, .08, 1.0, '#3b4248', 0, 3.95, .45);
+  box(l, .3, .1, .45, lampHead, 0, 3.88, .9);
+  const gm = new THREE.MeshBasicMaterial({ color:'#ffcf8a', transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending });
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(2.4, 32), gm);
+  disc.rotation.x = -PI/2; disc.position.set(0, .13, .9); l.add(disc);
+  lampGlows.push(gm);
+}
+
+// 자동차
+const cars = [];
+function makeCar(color){
+  const c = new THREE.Group();
+  box(c, 2.1, .55, 1.0, mat(color, { roughness:.35, metalness:.3 }), 0, .47, 0);
+  box(c, 1.15, .45, .9, '#2b3640', -.1, .96, 0);
+  box(c, 1.05, .06, .82, mat(color, { roughness:.35, metalness:.3 }), -.1, 1.2, 0);
+  for (const sx of [-.68,.68]) for (const sz of [-.5,.5]){ const w = cyl(c, .22, .22, .16, '#1a1c1f', sx, .22, sz, 12); w.rotation.x = PI/2; }
+  const hl = glow('#fffbe8', '#fff1c4', .1, 3), tl = glow('#a8262c', '#ff3b3b', .1, 2.2);
+  for (const sz of [-.33,.33]){ box(c, .04, .12, .2, hl, 1.06, .55, sz); box(c, .04, .1, .2, tl, -1.06, .55, sz); }
+  return c;
+}
+const CARC = ['#d64545','#f2f2f2','#2f6f8f','#f0b429','#3b4248','#7aa6c2','#4f772d','#e07a5f'];
+for (let k=0;k<5;k++){ const c = makeCar(pick(CARC)); env.add(c); cars.push({ c, axis:'x', lane:15.0, dir:1, pos:-34 + k*14 + rand()*4, speed:4.5 + rand()*2.5 }); }
+for (let k=0;k<4;k++){ const c = makeCar(pick(CARC)); env.add(c); cars.push({ c, axis:'x', lane:18.0, dir:-1, pos:-30 + k*16 + rand()*4, speed:4 + rand()*2.5 }); }
+for (let k=0;k<3;k++){ const c = makeCar(pick(CARC)); env.add(c); cars.push({ c, axis:'z', lane:-22.5, dir:1, pos:-26 + k*19, speed:4 + rand()*2 }); }
+for (let k=0;k<3;k++){ const c = makeCar(pick(CARC)); env.add(c); cars.push({ c, axis:'z', lane:-19.5, dir:-1, pos:-20 + k*18, speed:4 + rand()*2 }); }
+for (const [x,z] of [[20.4,-4.8],[20.4,2.4],[26,-2.4],[26,4.8],[26,-7.2+2.4*1]]){ const c = makeCar(pick(CARC)); c.position.set(x,0,z+1.2); env.add(c); }
+
+// 보행자
+const walkers = [];
+for (const [x,z,s] of [[-8,12.4,1.1],[6,12.0,-1.4]]){
+  const p = person(env, x, z, {}); walkers.push({ p, x, z, s, ph:rand()*6 });
+}
+
+/* ------------------------------------------------------------------ */
+/*  UI                                                                  */
+/* ------------------------------------------------------------------ */
+const $ = id => document.getElementById(id);
+const nav = $('floors'), panel = $('panel'), header = $('header'), tip = $('tip');
+const navBtns = [];
+[5,4,3,2,1,0].forEach(i => {
+  const b = document.createElement('button');
+  b.innerHTML = `<b>${FLOORS[i].id}</b><span>${FLOORS[i].name}</span>`;
+  b.onclick = () => selectFloor(i);
+  nav.appendChild(b); navBtns[i] = b;
+});
+const allBtn = document.createElement('button');
+allBtn.className = 'all'; allBtn.innerHTML = '<b>⌂</b><span>전체 보기</span>';
+allBtn.onclick = () => selectFloor(null);
+nav.appendChild(allBtn);
+
+const chips = [];
+FLOORS.forEach((F, i) => {
+  const b = document.createElement('button'); b.textContent = `${F.id} ${F.name}`;
+  b.onclick = () => selectFloor(i); $('pChips').appendChild(b); chips[i] = b;
+});
+
+let selected = null;
+function renderPanel(){
+  const d = selected == null ? OVERVIEW : FLOORS[selected];
+  panel.style.setProperty('--accent', d.color);
+  $('pTag').querySelector('span').textContent = selected == null ? 'OVERVIEW' : `${d.id} · ${d.en}`;
+  $('pTitle').textContent = selected == null ? d.name : `${d.id} ${d.name}`;
+  $('pDesc').textContent = d.desc;
+  $('pFeat').innerHTML = d.feats.map((t,k) => `<li><span class="n">0${k+1}</span>${t}</li>`).join('');
+  chips.forEach((c,k) => c.classList.toggle('active', k === selected));
+  navBtns.forEach((b,k) => b.classList.toggle('active', k === selected));
+  allBtn.classList.toggle('active', selected == null);
+  const prev = $('btnPrev'), next = $('btnNext'), all = $('btnAll');
+  if (selected == null){
+    prev.hidden = true; all.hidden = true; next.disabled = false;
+    next.textContent = '1F부터 둘러보기 ↑';
+  } else {
+    prev.hidden = false; all.hidden = false;
+    prev.disabled = selected === 0; next.disabled = selected === 5;
+    prev.textContent = selected === 0 ? '↓ 아래층' : `↓ ${FLOORS[selected-1].id}`;
+    next.textContent = selected === 5 ? '위층 ↑' : `${FLOORS[selected+1].id} ↑`;
+  }
+}
+$('btnPrev').onclick = () => { if (selected > 0) selectFloor(selected - 1); };
+$('btnNext').onclick = () => { selectFloor(selected == null ? 0 : Math.min(5, selected + 1)); };
+$('btnAll').onclick = () => selectFloor(null);
+
+function selectFloor(i){
+  if (i === selected) { if (i == null) return; }
+  selected = i;
+  floorObjs.forEach((o, k) => {
+    if (i == null){ o.opT = 1; o.liftT = 0; }
+    else if (k === i){ o.opT = 1; o.liftT = 0; }
+    else if (k > i){ o.opT = .1; o.liftT = 7.5; }
+    else { o.opT = .22; o.liftT = 0; }
+    const shadow = o.opT > .5;
+    o.meshes.forEach(m => m.castShadow = shadow && m.userData.cast);
+  });
+  const inner = $('pInner');
+  inner.classList.add('swap');
+  setTimeout(() => { renderPanel(); inner.classList.remove('swap'); }, 160);
+}
+
+let night = false;
+function setNight(v){
+  night = v;
+  document.body.classList.toggle('night', v);
+  $('dnLabel').textContent = v ? '밤' : '낮';
+  $('knob').textContent = v ? '☾' : '☀';
+  $('dn').setAttribute('aria-pressed', String(v));
+}
+$('dn').onclick = () => setNight(!night);
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp'){ selectFloor(selected == null ? 0 : Math.min(5, selected + 1)); e.preventDefault(); }
+  else if (e.key === 'ArrowDown'){ if (selected != null) selectFloor(selected === 0 ? null : selected - 1); e.preventDefault(); }
+  else if (e.key === 'Escape') selectFloor(null);
+  else if (e.key === 'n' || e.key === 'N') setNight(!night);
+});
+
+/* ------------------------------------------------------------------ */
+/*  카메라 & 입력                                                        */
+/* ------------------------------------------------------------------ */
+const EL = 32 * PI/180, R = 90;
+let az = PI/4, azT = PI/4, azVel = 0, zoomMul = 1;
+const camTarget = new THREE.Vector3(0, 10, .5), goalTarget = new THREE.Vector3();
+const cur = { wpp:.05, dx:0, dy:0, vh:36, vw:30 };
+const mq = window.matchMedia('(max-width: 820px)');
+
+function viewGoal(){
+  if (selected == null){ goalTarget.set(0, 10, .5); return { h:35, w:30 }; }
+  goalTarget.set(0, selected*FH + (selected === 5 ? 1.0 : 1.6), selected === 3 ? 2.2 : 1.0);
+  return { h:14.5, w:selected === 3 ? 24 : 22.5 };
+}
+function insets(){
+  const Wd = innerWidth, Hd = innerHeight;
+  const fb = nav.getBoundingClientRect(), pb = panel.getBoundingClientRect(), hb = header.getBoundingClientRect();
+  let l=0, r=0, t=0, b=0;
+  if (mq.matches){ t = fb.bottom + 4; b = Hd - pb.top + 4; }
+  else { l = pb.right + 8; r = Wd - fb.left + 8; t = hb.bottom; }
+  return { l, r, t, b, Wd, Hd };
+}
+
+const canvas = renderer.domElement;
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let drag = null, hoverQueued = null;
+function pickFloor(cx, cy){
+  const rc = canvas.getBoundingClientRect();
+  ndc.set(((cx - rc.left)/rc.width)*2 - 1, -((cy - rc.top)/rc.height)*2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(pickables, false);
+  for (const h of hits){
+    const k = h.object.userData.floor;
+    // 흐려진 층은 통과하여 뒤의 층 우선 (단, 클릭 시 선택은 가능)
+    if (selected != null && floorObjs[k].op < .5 && hits.some(o => floorObjs[o.object.userData.floor].op > .5)) continue;
+    return k;
+  }
+  return null;
+}
+canvas.addEventListener('pointerdown', e => {
+  drag = { x:e.clientX, y:e.clientY, lx:e.clientX, moved:0, id:e.pointerId, t:performance.now() };
+  canvas.setPointerCapture(e.pointerId);
+  azVel = 0;
+});
+canvas.addEventListener('pointermove', e => {
+  if (drag && e.pointerId === drag.id){
+    const dx = e.clientX - drag.lx; drag.lx = e.clientX;
+    drag.moved += Math.abs(dx) + Math.abs(e.movementY || 0);
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 5){ canvas.classList.add('dragging'); tip.style.opacity = 0; }
+    azT -= dx * 0.0075; azVel = -dx * 0.0075;
+  } else if (e.pointerType === 'mouse'){
+    hoverQueued = { x:e.clientX, y:e.clientY };
+  }
+});
+function endDrag(e){
+  if (!drag) return;
+  const tap = Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6;
+  canvas.classList.remove('dragging');
+  if (tap && e.type === 'pointerup'){
+    const k = pickFloor(e.clientX, e.clientY);
+    if (k != null && k !== selected) selectFloor(k);
+    azVel = 0;
+  }
+  drag = null;
+}
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('pointerleave', () => { tip.style.opacity = 0; canvas.classList.remove('hover'); });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoomMul = THREE.MathUtils.clamp(zoomMul * Math.exp(-e.deltaY * 0.0012), .6, 2.2);
+}, { passive:false });
+
+function doHover(){
+  if (!hoverQueued || drag) return;
+  const { x, y } = hoverQueued; hoverQueued = null;
+  const k = pickFloor(x, y);
+  if (k == null){ tip.style.opacity = 0; canvas.classList.remove('hover'); return; }
+  canvas.classList.add('hover');
+  tip.textContent = `${FLOORS[k].id} ${FLOORS[k].name}` + (k === selected ? '' : ' · 클릭해서 보기');
+  tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.style.opacity = 1;
+}
+
+function resize(){
+  renderer.setSize(innerWidth, innerHeight, false);
+  const dpr = Math.min(window.devicePixelRatio || 1, mq.matches ? 1.75 : 2);
+  renderer.setPixelRatio(dpr);
+  renderer.setSize(innerWidth, innerHeight, false);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ------------------------------------------------------------------ */
+/*  애니메이션                                                           */
+/* ------------------------------------------------------------------ */
+const clock = new THREE.Clock();
+let nightT = 0;
+const C = {
+  hemiSkyD:new THREE.Color('#ffffff'), hemiSkyN:new THREE.Color('#3d4c7c'),
+  hemiGndD:new THREE.Color('#a7b493'), hemiGndN:new THREE.Color('#1a2030'),
+  sunD:new THREE.Color('#fff0dc'), sunN:new THREE.Color('#9db0ff'),
+};
+const tmpR = new THREE.Vector3(), tmpU = new THREE.Vector3(), dir = new THREE.Vector3();
+let first = true;
+
+function frame(){
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  const k = 1 - Math.exp(-dt * 5);
+
+  // 낮/밤
+  nightT += ((night ? 1 : 0) - nightT) * (1 - Math.exp(-dt * 2.5));
+  hemi.intensity = THREE.MathUtils.lerp(1.25, .28, nightT);
+  hemi.color.copy(C.hemiSkyD).lerp(C.hemiSkyN, nightT);
+  hemi.groundColor.copy(C.hemiGndD).lerp(C.hemiGndN, nightT);
+  sun.intensity = THREE.MathUtils.lerp(2.6, .35, nightT);
+  sun.color.copy(C.sunD).lerp(C.sunN, nightT);
+  for (const e of nightMats) e.m.emissiveIntensity = e.d + (e.n - e.d) * nightT;
+  for (const g of lampGlows) g.opacity = nightT * .32;
+
+  // 층 애니메이션
+  floorObjs.forEach((o, i) => {
+    o.lift += (o.liftT - o.lift) * k;
+    o.g.position.y = i*FH + o.lift;
+    const prev = o.op;
+    o.op += (o.opT - o.op) * k;
+    if (Math.abs(o.op - o.opT) < .002) o.op = o.opT;
+    if (first || Math.abs(prev - o.op) > 1e-4){
+      for (const m of o.mats){
+        m.opacity = m.userData.base * o.op;
+        m.depthWrite = m.userData.dw && o.op > .95;
+      }
+    }
+    o.light.intensity = nightT * o.lightMax * o.op;
+  });
+
+  // 자동차
+  for (const car of cars){
+    car.pos += car.dir * car.speed * dt;
+    const lim = car.axis === 'x' ? 34 : 28, off = car.axis === 'x' ? 0 : 2;
+    if (car.pos > lim) car.pos = -lim; if (car.pos < -lim) car.pos = lim;
+    if (car.axis === 'x'){ car.c.position.set(car.pos, 0, car.lane); car.c.rotation.y = car.dir > 0 ? 0 : PI; }
+    else { car.c.position.set(car.lane, 0, car.pos + off); car.c.rotation.y = car.dir > 0 ? -PI/2 : PI/2; }
+    const edge = Math.min(1, (lim - Math.abs(car.pos)) / 2.5);
+    car.c.scale.setScalar(Math.max(.001, edge));
+  }
+  for (const w of walkers){
+    const x = w.x + Math.sin(t * .25 * Math.sign(w.s) + w.ph) * 6;
+    const vx = Math.cos(t * .25 * Math.sign(w.s) + w.ph) * Math.sign(w.s);
+    w.p.position.set(x, Math.abs(Math.sin(t*6 + w.ph)) * .04, w.z);
+    w.p.rotation.y = vx > 0 ? PI/2 : -PI/2;
+  }
+
+  // 회전 관성
+  if (!drag){ azT += azVel; azVel *= Math.pow(.02, dt); if (Math.abs(azVel) < 1e-5) azVel = 0; }
+  az += (azT - az) * (1 - Math.exp(-dt * 10));
+
+  // 카메라
+  const v = viewGoal();
+  if (first) camTarget.copy(goalTarget);
+  camTarget.lerp(goalTarget, k * .9);
+  cur.vh += (v.h - cur.vh) * k * .9;
+  cur.vw += (v.w - cur.vw) * k * .9;
+  const ins = insets();
+  const effW = Math.max(140, ins.Wd - ins.l - ins.r), effH = Math.max(140, ins.Hd - ins.t - ins.b);
+  const wpp = Math.max(cur.vh / effH, cur.vw / effW) / zoomMul;
+  const dxp = (ins.l - ins.r)/2, dyp = (ins.t - ins.b)/2;
+  if (first){ cur.wpp = wpp; cur.dx = dxp; cur.dy = dyp; }
+  cur.wpp += (wpp - cur.wpp) * k; cur.dx += (dxp - cur.dx) * k; cur.dy += (dyp - cur.dy) * k;
+
+  const halfW = cur.wpp * ins.Wd / 2, halfH = cur.wpp * ins.Hd / 2;
+  camera.left = -halfW; camera.right = halfW; camera.top = halfH; camera.bottom = -halfH;
+  camera.updateProjectionMatrix();
+  dir.set(Math.sin(az)*Math.cos(EL), Math.sin(EL), Math.cos(az)*Math.cos(EL));
+  camera.position.copy(camTarget).addScaledVector(dir, R);
+  camera.lookAt(camTarget);
+  camera.updateMatrixWorld();
+  tmpR.setFromMatrixColumn(camera.matrixWorld, 0);
+  tmpU.setFromMatrixColumn(camera.matrixWorld, 1);
+  camera.position.addScaledVector(tmpR, -cur.dx * cur.wpp).addScaledVector(tmpU, cur.dy * cur.wpp);
+  camera.updateMatrixWorld();
+
+  doHover();
+  renderer.render(scene, camera);
+  first = false;
+  requestAnimationFrame(frame);
+}
+
+renderPanel();
+window.__stillwellReady = true;
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

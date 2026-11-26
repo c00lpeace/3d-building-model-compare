@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1216">
+<title>STILLWELL</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    background:#f2f5f9;color:#1b2432;
+    display:flex;flex-direction:column;
+    height:100vh;height:100dvh;overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── header ── */
+  header{
+    flex:0 0 auto;display:flex;align-items:baseline;gap:14px;
+    padding:14px 22px;background:#fff;
+    border-bottom:1px solid rgba(20,33,61,.09);
+    box-shadow:0 1px 0 rgba(20,33,61,.03);
+    z-index:20;
+  }
+  header .logo{
+    font-size:18px;font-weight:800;letter-spacing:.2em;color:#14213d;
+  }
+  header .tagline{
+    font-size:12.5px;color:#6b7787;letter-spacing:.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+
+  /* ── main ── */
+  main{
+    position:relative;flex:1 1 auto;min-height:0;
+    display:flex;flex-direction:column;
+  }
+
+  #scene-container{
+    position:relative;flex:1 1 auto;min-height:0;overflow:hidden;
+    background:linear-gradient(180deg,#cfe3f7 0%,#eef5fc 62%,#f8fbfe 100%);
+    touch-action:none;
+  }
+  #scene-container canvas{display:block;width:100%;height:100%}
+
+  /* ── day / night toggle ── */
+  #daynight-toggle{
+    position:absolute;top:18px;left:18px;z-index:12;
+    padding:9px 16px;border-radius:999px;
+    border:1px solid rgba(20,33,61,.12);
+    background:rgba(255,255,255,.95);color:#22314a;
+    font:inherit;font-size:13px;font-weight:700;letter-spacing:.01em;
+    cursor:pointer;box-shadow:0 6px 18px rgba(16,32,64,.13);
+    transition:background .18s,border-color .18s,transform .12s;
+  }
+  #daynight-toggle:hover{background:#fff;border-color:rgba(27,110,243,.4)}
+  #daynight-toggle:active{transform:scale(.96)}
+
+  /* ── info panel ── */
+  #info-panel{
+    position:absolute;top:18px;right:18px;z-index:10;
+    width:302px;max-height:calc(100% - 36px);
+    display:flex;flex-direction:column;
+    padding:18px 20px 16px;
+    background:rgba(255,255,255,.94);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.75);border-radius:16px;
+    box-shadow:0 14px 34px rgba(16,32,64,.15);
+    overflow-y:auto;overscroll-behavior:contain;
+  }
+  #info-title{
+    font-size:20px;font-weight:800;letter-spacing:-.01em;color:#14213d;
+    line-height:1.3;
+  }
+  #info-desc{
+    margin-top:9px;font-size:13.5px;line-height:1.62;color:#5b6472;
+  }
+  #info-features{
+    list-style:none;display:flex;flex-direction:column;gap:7px;
+    margin-top:13px;padding-top:13px;border-top:1px solid rgba(20,33,61,.08);
+  }
+  #info-features:empty{display:none}
+  #info-features li{
+    position:relative;padding-left:15px;font-size:13px;line-height:1.5;color:#2b3442;
+  }
+  #info-features li::before{
+    content:"";position:absolute;left:0;top:6.5px;
+    width:5px;height:5px;border-radius:50%;background:#1b6ef3;
+  }
+  #info-prev,#info-next{
+    flex:1;padding:9px 6px;border-radius:10px;
+    border:1px solid #d8e0ea;background:#fff;color:#22314a;
+    font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+    transition:background .16s,border-color .16s,transform .12s;
+  }
+  #info-prev{margin-top:16px}
+  #info-next{margin-top:16px}
+  #info-prev:hover,#info-next:hover{background:#eef4ff;border-color:#b9cdf0}
+  #info-prev:active,#info-next:active{transform:scale(.97)}
+  .info-nav{display:flex;gap:8px;flex:0 0 auto}
+
+  /* ── floor buttons ── */
+  #floor-buttons{
+    flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    flex-wrap:wrap;gap:8px;
+    padding:12px 18px;background:#fff;
+    border-top:1px solid rgba(20,33,61,.09);
+    z-index:15;
+  }
+  #floor-buttons button{
+    flex:0 0 auto;padding:9px 18px;border-radius:999px;
+    border:1px solid #d8e0ea;background:#fff;color:#3a4557;
+    font:inherit;font-size:13.5px;font-weight:700;letter-spacing:.01em;
+    cursor:pointer;transition:background .16s,color .16s,border-color .16s,transform .12s;
+  }
+  #floor-buttons button:hover{background:#f2f6fd;border-color:#b9cdf0;color:#14213d}
+  #floor-buttons button:active{transform:scale(.96)}
+  #floor-buttons button.active{
+    background:#14213d;color:#fff;border-color:#14213d;
+    box-shadow:0 6px 16px rgba(20,33,61,.22);
+  }
+
+  /* ── night theme ── */
+  body.night{background:#0b0f16;color:#e6ecf5}
+  body.night header{background:#0e1420;border-bottom-color:rgba(255,255,255,.08)}
+  body.night header .logo{color:#f2f6ff}
+  body.night header .tagline{color:#8b9ab0}
+  body.night #scene-container{background:linear-gradient(180deg,#080d16 0%,#111b2a 62%,#182334 100%)}
+  body.night #floor-buttons{background:#0e1420;border-top-color:rgba(255,255,255,.08)}
+  body.night #floor-buttons button{background:#151d2b;color:#cfd9e8;border-color:#25313f}
+  body.night #floor-buttons button:hover{background:#1c2637;color:#fff}
+  body.night #floor-buttons button.active{background:#f0c469;color:#1a1a1a;border-color:#f0c469;box-shadow:0 6px 16px rgba(240,196,105,.28)}
+  body.night #info-panel{background:rgba(17,24,35,.94);border-color:rgba(255,255,255,.1);box-shadow:0 14px 34px rgba(0,0,0,.45)}
+  body.night #info-title{color:#f2f6ff}
+  body.night #info-desc{color:#a8b6c8}
+  body.night #info-features{border-top-color:rgba(255,255,255,.1)}
+  body.night #info-features li{color:#d7e0ec}
+  body.night #info-features li::before{background:#f0c469}
+  body.night #info-prev,body.night #info-next{background:#151d2b;color:#cfd9e8;border-color:#25313f}
+  body.night #info-prev:hover,body.night #info-next:hover{background:#1c2637}
+  body.night #daynight-toggle{background:#151d2b;color:#f0c469;border-color:#2a3a4d;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+
+  /* ── mobile ── */
+  @media (max-width:820px){
+    header{padding:11px 14px;gap:10px}
+    header .logo{font-size:15px;letter-spacing:.16em}
+    header .tagline{font-size:11.5px}
+
+    #daynight-toggle{top:10px;left:10px;padding:7px 13px;font-size:12px}
+
+    #scene-container{flex:1 1 auto;min-height:220px}
+
+    #info-panel{
+      position:static;width:auto;max-height:none;
+      margin:10px 12px 0;padding:14px 16px 12px;
+      border-radius:14px;flex:0 0 auto;max-height:34vh;
+    }
+    #info-title{font-size:17px}
+    #info-desc{margin-top:6px;font-size:12.5px;line-height:1.55}
+    #info-features{margin-top:10px;padding-top:10px;gap:5px}
+    #info-features li{font-size:12px}
+    #info-prev,#info-next{margin-top:11px;padding:8px 4px;font-size:12.5px}
+
+    #floor-buttons{
+      justify-content:flex-start;flex-wrap:nowrap;
+      gap:6px;padding:9px 12px;overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    #floor-buttons::-webkit-scrollbar{height:0}
+    #floor-buttons button{padding:8px 14px;font-size:12.5px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">STILLWELL</div>
+  <div class="tagline">층별로 둘러보는 가상의 공간</div>
+</header>
+<main>
+  <div id="scene-container"></div>
+
+  <aside id="info-panel">
+    <h2 id="info-title">STILLWELL</h2>
+    <p id="info-desc">층 버튼을 누르거나 건물의 층을 클릭하면 공간을 자세히 볼 수 있습니다. 마우스로 드래그해 건물을 돌려 보세요.</p>
+    <ul id="info-features"></ul>
+    <div class="info-nav">
+      <button id="info-prev" type="button">이전 층</button>
+      <button id="info-next" type="button">다음 층</button>
+    </div>
+  </aside>
+
+  <button id="daynight-toggle" type="button">🌙 밤</button>
+
+  <nav id="floor-buttons">
+    <button type="button" data-floor="-1" class="active">전체 보기</button>
+    <button type="button" data-floor="0">1F</button>
+    <button type="button" data-floor="1">2F</button>
+    <button type="button" data-floor="2">3F</button>
+    <button type="button" data-floor="3">4F</button>
+    <button type="button" data-floor="4">5F</button>
+    <button type="button" data-floor="5">RF</button>
+  </nav>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// === PART2 ===// === PART2 ===
+const container = document.getElementById('scene-container');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfe0ee);
+
+const VIEW_SIZE = 30;
+const startW = container.clientWidth || window.innerWidth;
+const startH = container.clientHeight || window.innerHeight;
+
+const camera = new THREE.OrthographicCamera(
+  -VIEW_SIZE * (startW / startH) / 2, VIEW_SIZE * (startW / startH) / 2,
+  VIEW_SIZE / 2, -VIEW_SIZE / 2, 0.1, 500
+);
+camera.position.set(20, 18, 20);
+camera.lookAt(0, 7, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(startW, startH);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.62);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xfff3e0, 0.9);
+dirLight.position.set(24, 38, 18);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.left = -34;
+dirLight.shadow.camera.right = 34;
+dirLight.shadow.camera.top = 34;
+dirLight.shadow.camera.bottom = -34;
+dirLight.shadow.camera.near = 1;
+dirLight.shadow.camera.far = 130;
+dirLight.shadow.bias = -0.0006;
+scene.add(dirLight);
+dirLight.target.position.set(0, 0, 0);
+scene.add(dirLight.target);
+
+function onResize() {
+  const w = container.clientWidth || window.innerWidth;
+  const h = container.clientHeight || window.innerHeight;
+  const a = w / h;
+  camera.left = -VIEW_SIZE * a / 2;
+  camera.right = VIEW_SIZE * a / 2;
+  camera.top = VIEW_SIZE / 2;
+  camera.bottom = -VIEW_SIZE / 2;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+const buildingGroup = new THREE.Group();
+scene.add(buildingGroup);
+
+function box(w, h, d, color, x, y, z, parent) {
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshLambertMaterial({ color: color })
+  );
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+
+function person(x, z, parent, shirtColor) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  box(0.55, 1.2, 0.32, shirtColor || 0x4a7fb5, 0, 0.65, 0, g);
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 16, 12),
+    new THREE.MeshLambertMaterial({ color: 0xf0c9a0 })
+  );
+  head.position.y = 1.43;
+  head.castShadow = true;
+  g.add(head);
+  (parent || scene).add(g);
+  return g;
+}
+
+function tree(x, z, parent) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.32, 1.8, 8),
+    new THREE.MeshLambertMaterial({ color: 0x8a5a3b })
+  );
+  trunk.position.y = 0.9;
+  trunk.castShadow = true;
+  g.add(trunk);
+  const leafMat = new THREE.MeshLambertMaterial({ color: 0x4f8f4a });
+  [[0, 2.35, 0, 1.15], [0.55, 1.95, 0.35, 0.85], [-0.5, 2.1, -0.3, 0.75]].forEach(function (p) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(p[3], 12, 10), leafMat);
+    s.position.set(p[0], p[1], p[2]);
+    s.castShadow = true;
+    g.add(s);
+  });
+  (parent || scene).add(g);
+  return g;
+}
+
+function car(x, z, color, parent, rotY) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  g.rotation.y = rotY || 0;
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(2.6, 0.7, 1.3),
+    new THREE.MeshLambertMaterial({ color: color || 0xd94f4f })
+  );
+  body.position.y = 0.62;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(1.35, 0.6, 1.12),
+    new THREE.MeshLambertMaterial({ color: 0x2b3540 })
+  );
+  cabin.position.set(-0.05, 1.2, 0);
+  cabin.castShadow = true;
+  g.add(cabin);
+  const wheelGeo = new THREE.CylinderGeometry(0.33, 0.33, 0.26, 14);
+  const wheelMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  [[-0.85, 0.62], [0.85, 0.62], [-0.85, -0.62], [0.85, -0.62]].forEach(function (p) {
+    const w = new THREE.Mesh(wheelGeo, wheelMat);
+    w.rotation.z = Math.PI / 2;
+    w.position.set(p[0], 0.33, p[1]);
+    w.castShadow = true;
+    g.add(w);
+  });
+  (parent || scene).add(g);
+  return g;
+}
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(240, 240),
+  new THREE.MeshLambertMaterial({ color: 0xc7d3bd })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.02;
+ground.receiveShadow = true;
+scene.add(ground);
+
+box(240, 0.12, 9, 0x474d55, 0, 0.05, 12, scene);
+box(240, 0.16, 3.2, 0xcfd2c9, 0, 0.09, 6, scene);
+for (let i = -8; i <= 8; i++) {
+  box(1.6, 0.02, 0.18, 0xe8e4d8, i * 3.2, 0.13, 12, scene);
+}
+
+tree(-10, 2, scene);
+tree(10, 2, scene);
+tree(-13.5, -3, scene);
+tree(13.5, -3, scene);
+tree(-2.5, -8.5, scene);
+tree(5, -8.5, scene);
+
+car(-8, 9.6, 0xd94f4f, scene);
+car(7, 14.4, 0x3b6fb5, scene, Math.PI);
+car(-16, 14.4, 0x5aa06b, scene, Math.PI);
+
+person(-5, 6, scene, 0xe07a5f);
+person(4, 6.2, scene, 0x5b8def);
+
+const FLOOR_INFO = [
+  {
+    label: '1F',
+    name: '로비 & 카페',
+    desc: '방문객을 맞이하는 오픈 로비와 캐주얼 카페가 자리합니다.',
+    features: ['오픈 라운지', '카페 & 베이커리', '안내 데스크']
+  },
+  {
+    label: '2F',
+    name: '오피스',
+    desc: '팀 단위 협업을 위한 개방형 오피스 공간입니다.',
+    features: ['개방형 좌석', '집중 업무실', '문서 보관실']
+  },
+  {
+    label: '3F',
+    name: '회의실',
+    desc: '다양한 규모의 회의와 발표를 위한 층입니다.',
+    features: ['대회의실', '화상회의실', '발표 라운지']
+  },
+  {
+    label: '4F',
+    name: '연구소',
+    desc: '프로토타입 제작과 실험을 위한 연구 공간입니다.',
+    features: ['실험실', '장비실', '세미나룸']
+  },
+  {
+    label: '5F',
+    name: '라운지',
+    desc: '휴식과 교류를 위한 임직원 전용 라운지입니다.',
+    features: ['휴게 라운지', '미니 도서관', '테라스']
+  },
+  {
+    label: 'RF',
+    name: '루프탑 정원',
+    desc: '도심 속 하늘 정원과 야외 이벤트 공간입니다.',
+    features: ['루프탑 가든', '야외 좌석', '전망 데크']
+  }
+];
+
+const floorGroups = [];
+const floorMeshes = [];
+const windowMats = [];
+let selectedFloor = -1;
+let isNight = false;
+let targetRotY = 0;
+let currentRotY = 0;
+
+// === PART3 ===// === PART3 ===
+function buildBuilding() {
+  const W = 12, D = 9, FH = 3;
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xe4e7ec, roughness: 0.92 });
+  const colMat = new THREE.MeshStandardMaterial({ color: 0xaeb3bb, roughness: 0.8 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.5, metalness: 0.35 });
+  const glassProps = { color: 0x9fc7e8, transparent: true, opacity: 0.7, roughness: 0.12, metalness: 0.15 };
+
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.Group();
+    g.position.y = i * FH;
+    buildingGroup.add(g);
+    floorGroups.push(g);
+
+    const slab = box(W, 0.3, D, 0xd7dbe2, 0, -0.15, 0, g);
+    slab.userData.floor = i;
+    floorMeshes.push(slab);
+
+    const winMat = new THREE.MeshStandardMaterial(glassProps);
+    windowMats.push(winMat);
+
+    if (i < 5) {
+      const back = new THREE.Mesh(new THREE.BoxGeometry(W, FH, 0.18), wallMat);
+      back.position.set(0, FH / 2, -D / 2 + 0.09);
+      g.add(back);
+
+      [-1, 1].forEach(s => {
+        const side = new THREE.Mesh(new THREE.BoxGeometry(0.18, FH, D), wallMat);
+        side.position.set(s * (W / 2 - 0.09), FH / 2, 0);
+        g.add(side);
+      });
+
+      for (let k = -1; k <= 1; k++) {
+        const pane = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.75, 0.07), winMat);
+        pane.position.set(k * 3.3, 1.62, -D / 2 + 0.21);
+        g.add(pane);
+      }
+      [-1, 1].forEach(s => {
+        for (let k = -1; k <= 1; k += 2) {
+          const pane = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.75, 2.6), winMat);
+          pane.position.set(s * (W / 2 - 0.21), 1.62, k * 2.0);
+          g.add(pane);
+        }
+      });
+
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        const c = new THREE.Mesh(new THREE.BoxGeometry(0.34, FH, 0.34), colMat);
+        c.position.set(sx * (W / 2 - 0.26), FH / 2, sz * (D / 2 - 0.26));
+        g.add(c);
+      });
+    } else {
+      const railY = 0.95, railCol = 0x3a3f47;
+      box(W, 0.07, 0.07, railCol, 0, railY, D / 2 - 0.1, g);
+      box(W, 0.07, 0.07, railCol, 0, railY, -D / 2 + 0.1, g);
+      box(0.07, 0.07, D, railCol, W / 2 - 0.1, railY, 0, g);
+      box(0.07, 0.07, D, railCol, -W / 2 + 0.1, railY, 0, g);
+
+      for (let x = -W / 2 + 0.1; x <= W / 2 - 0.09; x += 2.36) {
+        box(0.07, railY, 0.07, railCol, x, railY / 2, D / 2 - 0.1, g);
+        box(0.07, railY, 0.07, railCol, x, railY / 2, -D / 2 + 0.1, g);
+      }
+      for (let z = -D / 2 + 0.1; z <= D / 2 - 0.09; z += 2.2) {
+        box(0.07, railY, 0.07, railCol, W / 2 - 0.1, railY / 2, z, g);
+        box(0.07, railY, 0.07, railCol, -W / 2 + 0.1, railY / 2, z, g);
+      }
+
+      [[0, D / 2 - 0.1], [0, -D / 2 + 0.1]].forEach(([x, z]) => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(W - 0.4, 0.76, 0.04), winMat);
+        p.position.set(x, 0.42, z);
+        g.add(p);
+      });
+      [-1, 1].forEach(s => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.76, D - 0.4), winMat);
+        p.position.set(s * (W / 2 - 0.1), 0.42, 0);
+        g.add(p);
+      });
+    }
+
+    if (i === 0) {
+      box(3.2, 0.9, 0.9, 0x7d5a44, 0, 0.45, -3.2, g);
+      box(3.4, 0.1, 1.0, 0xb08a68, 0, 0.95, -3.2, g);
+      box(0.9, 0.42, 0.08, 0x2a2f38, 0, 0.6, -2.71, g);
+
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x4a4f57, roughness: 0.5, metalness: 0.4 });
+      [-1.6, 1.6].forEach(x => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.12), frameMat);
+        p.position.set(x, 1.3, 4.25);
+        g.add(p);
+      });
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.12), frameMat);
+      beam.position.set(0, 2.6, 4.25);
+      g.add(beam);
+      const door = new THREE.Mesh(
+        new THREE.BoxGeometry(3.1, 2.5, 0.05),
+        new THREE.MeshStandardMaterial({ color: 0x9fc7e8, transparent: true, opacity: 0.45, roughness: 0.1 })
+      );
+      door.position.set(0, 1.28, 4.22);
+      g.add(door);
+
+      box(3.8, 0.55, 0.18, 0x1e232b, 0, 2.95, 4.3, g);
+      const letterMat = new THREE.MeshStandardMaterial({ color: 0xf5f7fa, emissive: 0x333333 });
+      for (let l = 0; l < 9; l++) {
+        const lm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.26, 0.06), letterMat);
+        lm.position.set(-1.6 + l * 0.4, 2.95, 4.41);
+        g.add(lm);
+      }
+
+      [-4.6, 4.6].forEach(x => {
+        box(0.8, 0.5, 0.8, 0x8b8f96, x, 0.25, 3.4, g);
+        box(0.55, 0.7, 0.55, 0x4f8f5a, x, 0.85, 3.4, g);
+      });
+    }
+
+    if (i === 1) {
+      const deskMat = 0xd9c7a4;
+      [[-2.6, -1.8], [2.6, -1.8], [-2.6, 1.4], [2.6, 1.4]].forEach(([x, z]) => {
+        box(1.8, 0.1, 0.9, deskMat, x, 0.75, z, g);
+        [[-0.8, -0.35], [0.8, -0.35], [-0.8, 0.35], [0.8, 0.35]].forEach(([dx, dz]) => {
+          box(0.08, 0.75, 0.08, 0x8a8f98, x + dx, 0.375, z + dz, g);
+        });
+        box(0.7, 0.45, 0.05, 0x2a2f38, x, 1.05, z - 0.25, g);
+        box(0.55, 0.1, 0.55, 0x3b6fb5, x, 0.5, z + 0.95, g);
+        box(0.55, 0.6, 0.1, 0x3b6fb5, x, 0.8, z + 1.2, g);
+        box(0.08, 0.45, 0.08, 0x555b64, x, 0.25, z + 0.95, g);
+      });
+      person(-4.6, -1.8, g, 0x5b8def);
+      person(4.6, -1.8, g, 0xe07a5f);
+      person(0, 2.9, g, 0x6a8f5a);
+    }
+
+    if (i === 2) {
+      box(4, 0.18, 1.6, 0x9c6b45, 0, 0.9, 0, g);
+      [[-1.6, -0.5], [1.6, -0.5], [-1.6, 0.5], [1.6, 0.5]].forEach(([x, z]) => {
+        box(0.2, 0.85, 0.2, 0x7a5236, x, 0.425, z, g);
+      });
+      [-1.4, 0, 1.4].forEach(x => {
+        [-1, 1].forEach(s => {
+          box(0.55, 0.1, 0.55, 0x3b6fb5, x, 0.5, s * 1.35, g);
+          box(0.55, 0.6, 0.1, 0x3b6fb5, x, 0.75, s * 1.62, g);
+        });
+      });
+      [-3.4, 3.4].forEach(x => {
+        box(2.3, 0.45, 0.9, 0x6a7f9a, x, 0.225, -2.8, g);
+        box(2.3, 0.65, 0.18, 0x6a7f9a, x, 0.55, -3.22, g);
+        box(0.18, 0.55, 0.9, 0x6a7f9a, x - 1.15, 0.275, -2.8, g);
+        box(0.18, 0.55, 0.9, 0x6a7f9a, x + 1.15, 0.275, -2.8, g);
+      });
+    }
+// === PART3B ===
+    if (i === 3) {
+      box(5.6, 1.0, 0.8, 0x8a6a4f, 0, 0.5, -2.9, g);
+      box(5.8, 0.12, 0.95, 0xd9c7a3, 0, 1.06, -2.9, g);
+      [-3, 0, 3].forEach(x => {
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.09, 24), new THREE.MeshStandardMaterial({ color: 0xd9c7a3 }));
+        top.position.set(x, 0.82, 1.1); g.add(top);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.78, 12), new THREE.MeshStandardMaterial({ color: 0x555b64 }));
+        leg.position.set(x, 0.39, 1.1); g.add(leg);
+        [-0.95, 0.95].forEach(dx => {
+          const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.45, 16), new THREE.MeshStandardMaterial({ color: 0x3b6fb5 }));
+          stool.position.set(x + dx, 0.225, 1.1); g.add(stool);
+        });
+      });
+      [-3.8, 3.8].forEach(x => {
+        box(2.2, 0.55, 0.7, 0x8a6a4f, x, 0.275, 3.8, g);
+        box(2.0, 0.12, 0.55, 0x4c8b3f, x, 0.61, 3.8, g);
+      });
+      person(-1.2, 2.5, g, 0xe07a5f);
+    }
+
+    if (i === 4) {
+      [-3.8, 0, 3.8].forEach(x => {
+        box(2.0, 0.15, 1.0, 0x3a3f46, x, 0.1, -1.2, g);
+        const panel = box(2.0, 0.9, 0.12, 0x2c3138, x, 0.85, -1.8, g);
+        panel.rotation.x = -0.5;
+      });
+      box(4.0, 0.35, 0.8, 0x555b64, 0, 0.175, 2.6, g);
+      [-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].forEach(x => {
+        box(0.35, 0.18, 0.45, 0x22262b, x, 0.44, 2.6, g);
+      });
+      [-3.4, 3.4].forEach(x => {
+        box(2.5, 0.05, 1.1, 0x3b6fb5, x, 0.03, 1.0, g);
+      });
+      person(4.2, 3.0, g, 0x6a8f5a);
+    }
+
+    if (i === 5) {
+      box(3.4, 0.4, 1.1, 0x6b7f96, 0, 0.25, 2.4, g);
+      box(3.4, 0.8, 0.25, 0x5a6d82, 0, 0.75, 2.9, g);
+      [-1.58, 1.58].forEach(x => {
+        box(0.25, 0.55, 1.1, 0x5a6d82, x, 0.45, 2.4, g);
+      });
+      person(-2.2, 1.2, g, 0x5b8def);
+      person(2.2, 1.2, g, 0xe07a5f);
+      [[-4.6, 2.8], [4.6, 2.8], [0, -2.2]].forEach(([x, z]) => {
+        box(1.4, 0.5, 0.6, 0x8a6a4f, x, 0.25, z, g);
+        box(1.25, 0.12, 0.48, 0x4c8b3f, x, 0.56, z, g);
+      });
+      [-3.5, 3.5].forEach(x => {
+        [-3.8, -1.8].forEach(z => {
+          box(0.25, 2.6, 0.25, 0x7a5236, x, 1.3, z, g);
+        });
+      });
+      [-3.8, -1.8].forEach(z => {
+        box(7.5, 0.2, 0.25, 0x7a5236, 0, 2.7, z, g);
+      });
+      [-3.5, 3.5].forEach(x => {
+        box(0.25, 0.2, 2.3, 0x7a5236, x, 2.7, -2.8, g);
+      });
+    }
+  }
+}
+buildBuilding();
+// === PART4 ===// === PART4 ===
+var floorBaseY = floorGroups.map(function(g){ return g.position.y; });
+var floorTargetY = floorBaseY.slice();
+var _titleEl = document.getElementById('info-title');
+var _descEl = document.getElementById('info-desc');
+var _featEl = document.getElementById('info-features');
+var _btns = document.querySelectorAll('#floor-buttons button');
+
+var OVERVIEW_INFO = {
+  label: '',
+  name: '전체 보기',
+  desc: '6개 층으로 이루어진 사옥 전체를 아이소메트릭 뷰로 살펴보세요. 층을 클릭하거나 아래 층 버튼으로 원하는 층을 선택할 수 있습니다.',
+  features: ['1F 안내 · 라운지', '2F 오피스', '3F 회의실', '4F 개발팀', '5F 임원실', 'RF 옥상 정원']
+};
+
+function setFloorOpacity(group, op){
+  if(!group) return;
+  group.traverse(function(o){
+    if(!o.isMesh || !o.material) return;
+    if(o.userData && (o.userData.isWindow || o.userData.type === 'window')) return;
+    var isArr = Array.isArray(o.material);
+    var mats = isArr ? o.material : [o.material];
+    var out = mats.map(function(m){
+      if(!m || windowMats.indexOf(m) >= 0) return m;
+      if(!m.userData) m.userData = {};
+      if(!m.userData.__ownMat){
+        m = m.clone();
+        m.userData = { __ownMat: true };
+      }
+      m.transparent = op < 1;
+      m.opacity = op;
+      m.depthWrite = op >= 1;
+      m.needsUpdate = true;
+      return m;
+    });
+    o.material = isArr ? out : out[0];
+  });
+}
+
+function selectFloor(i){
+  selectedFloor = i;
+  for(var k = 0; k < floorGroups.length; k++){
+    var g = floorGroups[k];
+    if(i === -1){
+      floorTargetY[k] = floorBaseY[k];
+      setFloorOpacity(g, 1);
+    } else if(k === i){
+      floorTargetY[k] = floorBaseY[k] + 1.2;
+      setFloorOpacity(g, 1);
+    } else {
+      floorTargetY[k] = floorBaseY[k];
+      setFloorOpacity(g, 0.22);
+    }
+  }
+
+  var info = (i >= 0 && FLOOR_INFO[i]) ? FLOOR_INFO[i] : OVERVIEW_INFO;
+  if(_titleEl) _titleEl.textContent = info.label ? (info.label + ' ' + info.name) : info.name;
+  if(_descEl) _descEl.textContent = info.desc || '';
+  if(_featEl){
+    _featEl.innerHTML = (info.features || []).map(function(f){ return '<li>' + f + '</li>'; }).join('');
+  }
+  for(var b = 0; b < _btns.length; b++){
+    var bf = parseInt(_btns[b].getAttribute('data-floor'), 10);
+    if(bf === i) _btns[b].classList.add('active');
+    else _btns[b].classList.remove('active');
+  }
+}
+
+(function(){
+  var ctr = document.getElementById('scene-container');
+  var toggle = document.getElementById('daynight-toggle');
+  var prevBtn = document.getElementById('info-prev');
+  var nextBtn = document.getElementById('info-next');
+
+  if(typeof currentRotY !== 'number') currentRotY = buildingGroup.rotation.y;
+  if(typeof targetRotY !== 'number') targetRotY = currentRotY;
+  if(typeof isNight !== 'boolean') isNight = false;
+
+  // ---- floor buttons ----
+  for(var k = 0; k < _btns.length; k++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        selectFloor(parseInt(btn.getAttribute('data-floor'), 10));
+      });
+    })(_btns[k]);
+  }
+
+  // ---- prev / next (cycle -1 .. 5) ----
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    selectFloor(selectedFloor <= -1 ? 5 : selectedFloor - 1);
+  });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    selectFloor(selectedFloor >= 5 ? -1 : selectedFloor + 1);
+  });
+
+  // ---- day / night ----
+  function applyNight(on){
+    scene.background = new THREE.Color(on ? 0x0a1226 : 0xdce8f6);
+    if(typeof ambientLight !== 'undefined' && ambientLight) ambientLight.intensity = on ? 0.28 : 0.72;
+    if(typeof dirLight !== 'undefined' && dirLight) dirLight.intensity = on ? 0.35 : 1.0;
+    if(typeof hemiLight !== 'undefined' && hemiLight) hemiLight.intensity = on ? 0.25 : 0.55;
+    for(var n = 0; n < windowMats.length; n++){
+      var m = windowMats[n];
+      if(!m || !m.emissive) continue;
+      m.emissive.setHex(on ? 0xffca66 : 0x000000);
+      m.emissiveIntensity = on ? 1 : 0;
+      m.needsUpdate = true;
+    }
+    if(toggle) toggle.textContent = on ? '🌙 밤' : '☀️ 낮';
+  }
+  if(toggle) toggle.addEventListener('click', function(){
+    isNight = !isNight;
+    applyNight(isNight);
+  });
+
+  // ---- picking (click vs drag) ----
+  var ray = new THREE.Raycaster();
+  var ndc = new THREE.Vector2();
+  var drag = null;
+
+  function pick(e){
+    var r = renderer.domElement.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    ndc.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    ndc.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+    ray.setFromCamera(ndc, camera);
+    var hits = ray.intersectObjects(floorMeshes, true);
+    for(var h = 0; h < hits.length; h++){
+      var o = hits[h].object;
+      while(o && o.userData.floor === undefined) o = o.parent;
+      if(o && typeof o.userData.floor === 'number'){
+        selectFloor(o.userData.floor);
+        return;
+      }
+    }
+  }
+
+  if(ctr) ctr.style.touchAction = 'none';
+  if(ctr) ctr.addEventListener('pointerdown', function(e){
+    drag = { x: e.clientX, y: e.clientY, rot: targetRotY, t: Date.now() };
+  });
+  window.addEventListener('pointermove', function(e){
+    if(!drag) return;
+    var dx = e.clientX - drag.x;
+    var dy = e.clientY - drag.y;
+    if(Math.abs(dx) + Math.abs(dy) > 5) targetRotY = drag.rot + dx * 0.008;
+  });
+  window.addEventListener('pointerup', function(e){
+    if(!drag) return;
+    var moved = Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y);
+    var quick = Date.now() - drag.t < 600;
+    if(moved < 5 && quick) pick(e);
+    drag = null;
+  });
+  window.addEventListener('pointercancel', function(){ drag = null; });
+
+  // ---- resize ----
+  var camBaseTop = camera.top, camBaseBottom = camera.bottom;
+  var camBaseLeft = camera.left, camBaseRight = camera.right;
+  var camCY = (camBaseTop + camBaseBottom) / 2;
+  var camCX = (camBaseLeft + camBaseRight) / 2;
+  var camH = camBaseTop - camBaseBottom;
+
+  function onResize(){
+    var w = (ctr ? ctr.clientWidth : 0) || window.innerWidth;
+    var h = (ctr ? ctr.clientHeight : 0) || window.innerHeight;
+    if(w <= 0 || h <= 0) return;
+    if(camera.isPerspectiveCamera){
+      camera.aspect = w / h;
+    } else {
+      var wSize = camH * (w / h);
+      camera.left = camCX - wSize / 2;
+      camera.right = camCX + wSize / 2;
+      camera.top = camCY + camH / 2;
+      camera.bottom = camCY - camH / 2;
+    }
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  // ---- render loop ----
+  function animate(){
+    requestAnimationFrame(animate);
+    for(var f = 0; f < floorGroups.length; f++){
+      var g = floorGroups[f];
+      g.position.y += (floorTargetY[f] - g.position.y) * 0.18;
+    }
+    currentRotY += (targetRotY - currentRotY) * 0.08;
+    buildingGroup.rotation.y = currentRotY;
+    renderer.render(scene, camera);
+  }
+
+  applyNight(isNight);
+  selectFloor(-1);
+  animate();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D 건물 사이트 — 모델별 비교</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; background:#f6f7f9; color:#1c1e21; line-height:1.55; }
+  header { background:#111827; color:#fff; padding:28px 20px 22px; }
+  header h1 { margin:0 0 6px; font-size:24px; }
+  header p { margin:0; color:#cbd5e1; font-size:14px; }
+  main { max-width:1180px; margin:0 auto; padding:20px 16px 48px; }
+  h2 { font-size:19px; margin:30px 0 12px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; }
+  .card img { width:100%; border-radius:8px; border:1px solid #e5e7eb; display:block; }
+  .card h3 { margin:10px 0 2px; font-size:16px; }
+  .score { font-size:26px; font-weight:700; }
+  .rank { display:inline-block; background:#111827; color:#fff; border-radius:999px; padding:1px 10px; font-size:12px; margin-right:6px; }
+  .card p { margin:6px 0 10px; font-size:13.5px; color:#374151; }
+  a.btn, button.btn { display:inline-block; background:#2563eb; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:14px; cursor:pointer; text-decoration:none; }
+  button.btn.sub, a.btn.sub { background:#e5e7eb; color:#111827; }
+  .viewer { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .frames { display:grid; grid-template-columns:1fr; gap:12px; }
+  .frames.duo { grid-template-columns:1fr 1fr; }
+  @media (max-width:760px){ .frames.duo{ grid-template-columns:1fr; } }
+  .framebox label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .framebox select { width:100%; padding:7px; margin-bottom:8px; font-size:14px; }
+  iframe { width:100%; height:560px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+  table { width:100%; border-collapse:collapse; background:#fff; font-size:14px; }
+  th, td { border:1px solid #e5e7eb; padding:8px 10px; text-align:center; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { background:#f3f4f6; }
+  .note { font-size:13px; color:#4b5563; }
+  .warn { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; font-size:13.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>3D 건물 사이트 — 모델별 비교</h1>
+  <p>같은 프롬프트(STILLWELL 층별 투어 사이트, 단일 HTML)로 4개 모델이 만든 결과를 직접 조작하며 비교하는 페이지입니다. 점수는 전부 실제 렌더링·클릭·캡처로 확인한 실측입니다.</p>
+</header>
+<main>
+
+<h2>Medium 1차전 순위</h2>
+<div class="cards">
+  <div class="card">
+    <img src="shots/claude-desktop.png" alt="Claude 버전 첫 화면">
+    <h3><span class="rank">1위</span>Claude <span class="score">97</span></h3>
+    <p>Opus 5.5 Medium · 요구사항을 거의 전부, 가장 풍부한 디테일로 구현한 완성형. 1F 간판·유리 로비, 층 선택 시 카메라 이동+고스트, 밤 창 전면 발광.</p>
+    <button class="btn" onclick="showOne('claude')">뷰어에서 보기</button>
+    <a class="btn sub" href="claude/index.html" target="_blank">원본 열기</a>
+  </div>
+  <div class="card">
+    <img src="shots/codex-desktop.png" alt="Codex 버전 첫 화면">
+    <h3><span class="rank">2위</span>Codex <span class="score">86</span></h3>
+    <p>gpt-6.2-sol Medium · 깔끔하고 안정적이지만 외벽 없는 슬래브 적층 구조라 디테일이 얇고, 2F가 거의 빈 층, 1F 간판·리셉션 없음.</p>
+    <button class="btn" onclick="showOne('codex')">뷰어에서 보기</button>
+    <a class="btn sub" href="codex/index.html" target="_blank">원본 열기</a>
+  </div>
+  <div class="card">
+    <img src="shots/musae-desktop.png" alt="무새 버전 첫 화면">
+    <h3><span class="rank">3위</span>무새 <span class="score">82</span></h3>
+    <p>패널 정보량(면적·층고·수용 인원·특징)과 부가 기능은 4종 중 최고. 다만 층 배치가 지시와 뒤바뀌었고(2F 카페·4F 라운지) 첫 화면에서 1F가 잘려 보임.</p>
+    <button class="btn" onclick="showOne('musae')">뷰어에서 보기</button>
+    <a class="btn sub" href="musae/index.html" target="_blank">원본 열기</a>
+  </div>
+  <div class="card">
+    <img src="shots/deepseek-desktop.png" alt="DeepSeek 버전 첫 화면">
+    <h3><span class="rank">4위</span>DeepSeek <span class="score">68</span></h3>
+    <p>V4.1 Flash (100milionseek 경유) · 상호작용은 다 동작하나 지시한 층 구성을 임의로 교체(안내·오피스·회의실·개발팀·임원실)한 것이 결정적 결함.</p>
+    <button class="btn" onclick="showOne('deepseek')">뷰어에서 보기</button>
+    <a class="btn sub" href="deepseek/index.html" target="_blank">원본 열기</a>
+  </div>
+</div>
+
+<h2>라이브 뷰어</h2>
+<div class="viewer">
+  <div class="tabs">
+    <button class="btn" onclick="showOne('claude')">Claude</button>
+    <button class="btn" onclick="showOne('codex')">Codex</button>
+    <button class="btn" onclick="showOne('musae')">무새</button>
+    <button class="btn" onclick="showOne('deepseek')">DeepSeek</button>
+    <button class="btn sub" onclick="showDuo()">나란히 비교</button>
+  </div>
+  <div class="frames" id="frames">
+    <div class="framebox" id="boxA">
+      <label id="labelA">Claude (Opus 5.5 Medium) — 97점</label>
+      <iframe id="frameA" src="claude/index.html" title="버전 A"></iframe>
+    </div>
+    <div class="framebox" id="boxB" style="display:none">
+      <label>비교 대상 선택</label>
+      <select id="selB" onchange="loadB()">
+        <option value="codex" selected>Codex (gpt-6.2-sol Medium) — 86점</option>
+        <option value="musae">무새 — 82점</option>
+        <option value="deepseek">DeepSeek (V4.1 Flash) — 68점</option>
+        <option value="claude">Claude (Opus 5.5 Medium) — 97점</option>
+        <option value="claude-high">Claude High (채점 중)</option>
+        <option value="codex-high">Codex High (채점 중)</option>
+      </select>
+      <iframe id="frameB" src="codex/index.html" title="버전 B"></iframe>
+    </div>
+  </div>
+  <p class="note">각 화면 안에서 층 버튼·낮/밤 토글·드래그 회전을 직접 조작해 볼 수 있습니다. 로딩이 느리면 잠시 기다리거나 원본 열기를 이용해 주세요.</p>
+</div>
+
+<h2>항목별 점수 (100점)</h2>
+<table>
+  <thead><tr><th>항목 (배점)</th><th>Claude</th><th>Codex</th><th>무새</th><th>DeepSeek</th></tr></thead>
+  <tbody>
+    <tr><td>첫 화면 3D·아이소메트릭·주변 환경 (20)</td><td>19</td><td>16</td><td>15</td><td>13</td></tr>
+    <tr><td>층 구성 충실도 (20)</td><td>19</td><td>15</td><td>13</td><td>9</td></tr>
+    <tr><td>층 선택 연출 + 전체 보기 복귀 (15)</td><td>15</td><td>13</td><td>13</td><td>12</td></tr>
+    <tr><td>정보 패널 (15)</td><td>15</td><td>14</td><td>15</td><td>11</td></tr>
+    <tr><td>낮/밤 토글 (10)</td><td>10</td><td>9</td><td>8</td><td>7</td></tr>
+    <tr><td>드래그 회전 (5)</td><td>5</td><td>5</td><td>5</td><td>5</td></tr>
+    <tr><td>모바일 레이아웃 (10)</td><td>9</td><td>9</td><td>8</td><td>6</td></tr>
+    <tr><td>오류 없음·로드 안정성 (5)</td><td>5</td><td>5</td><td>5</td><td>5</td></tr>
+    <tr><td><strong>총점</strong></td><td><strong>97</strong></td><td><strong>86</strong></td><td><strong>82</strong></td><td><strong>68</strong></td></tr>
+  </tbody>
+</table>
+<p class="note">콘솔 오류는 4종 모두 없었습니다. 기능적 치명 결함(로드 실패·조작 불능)은 4종 모두 없고, 내용 결함으로는 DeepSeek의 층 구성 교체+표기 불일치, 무새의 층 배치 뒤바뀜이 기록됐습니다.</p>
+
+<h2>제작 스펙 비교</h2>
+<table>
+  <thead><tr><th>구분</th><th>Claude</th><th>Codex</th><th>무새</th><th>DeepSeek</th></tr></thead>
+  <tbody>
+    <tr><td>모델 / effort</td><td>Opus 5.5 / Medium</td><td>gpt-6.2-sol / Medium</td><td>아티팩트 빌더</td><td>V4.1 Flash / Medium 상당 (중개형)</td></tr>
+    <tr><td>파일 크기</td><td>53,617바이트</td><td>45,468바이트</td><td>약 1.18MB (라이브러리 내장 포함)</td><td>30,005바이트</td></tr>
+    <tr><td>소요 시간</td><td>약 11분 21초</td><td>단발 실행</td><td>-</td><td>생성 합계 약 454초</td></tr>
+    <tr><td>토큰</td><td>출력 69,229</td><td>입력 17,929 / 출력 15,989</td><td>-</td><td>산출물 기준 49,068</td></tr>
+    <tr><td>호출·시도</td><td>자율 실행 3턴</td><td>1회</td><td>-</td><td>성공 5건 / 전체 시도 13회</td></tr>
+    <tr><td>특이사항</td><td>API 환산 $2.12 (Max 구독 실행)</td><td>가장 적은 출력 토큰으로 86점</td><td>패널 정보량 최고, 층 배치 오류</td><td>숨은 프롬프트 622토큰 확인, 조립 개입 있음</td></tr>
+  </tbody>
+</table>
+
+<h2>High 재대결 (상위 2개)</h2>
+<div class="warn">Claude High (73,807바이트, 출력 101,072토큰, 약 16분 15초)와 Codex High (60,141바이트, 출력 32,152토큰, Three.js 없이 Canvas 2D 직접 투영으로 전환)는 제작이 끝났고 현재 채점 중입니다. 아래 원본으로 먼저 직접 확인해 볼 수 있습니다.</div>
+<p>
+  <a class="btn" href="claude-high/index.html" target="_blank">Claude High 원본 열기</a>
+  <a class="btn" href="codex-high/index.html" target="_blank">Codex High 원본 열기</a>
+</p>
+
+<script>
+  var names = {
+    'claude': 'Claude (Opus 5.5 Medium) — 97점',
+    'codex': 'Codex (gpt-6.2-sol Medium) — 86점',
+    'musae': '무새 — 82점',
+    'deepseek': 'DeepSeek (V4.1 Flash) — 68점',
+    'claude-high': 'Claude (Opus 5.5 High) — 채점 중',
+    'codex-high': 'Codex (gpt-6.2-sol High) — 채점 중'
+  };
+  function showOne(key){
+    document.getElementById('frames').className = 'frames';
+    document.getElementById('boxB').style.display = 'none';
+    document.getElementById('labelA').textContent = names[key];
+    document.getElementById('frameA').src = key + '/index.html';
+    document.getElementById('frames').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  function showDuo(){
+    document.getElementById('frames').className = 'frames duo';
+    document.getElementById('boxB').style.display = 'block';
+  }
+  function loadB(){
+    var key = document.getElementById('selB').value;
+    document.getElementById('frameB').src = key + '/index.html';
+  }
+</script>
+</main>
+</body>
+</html>
